@@ -1,0 +1,25 @@
+<?php
+
+namespace Database\Factories\Modules\Tenancy;
+
+use App\Models\User;
+use App\Modules\Tenancy\Models\Business;
+use App\Modules\Tenancy\Models\BusinessUser;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<BusinessUser>
+ */
+class BusinessUserFactory extends Factory
+{
+    protected $model = BusinessUser::class;
+
+    public function definition(): array
+    {
+        return [
+            'business_id' => Business::factory(),
+            'user_id' => User::factory(),
+            'role' => 'owner',
+        ];
+    }
+}
