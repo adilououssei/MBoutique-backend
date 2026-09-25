@@ -147,7 +147,11 @@ Symétrique à `ProductCategory`.
 
 ## 6. Inventory
 
-### StockMovement
+> **Révision (Phase 4.1, 2026-09-24)** : le prompt de cette phase a demandé explicitement un modèle `Stock` séparé plutôt que la colonne dénormalisée `products.current_stock` décrite plus bas dans cette section et en §11. Décision actée avec l'utilisateur : suivre la nouvelle demande. Ce qui suit est **remplacé** par la structure implémentée, détaillée dans [inventory.md](inventory.md) — cette section garde le texte d'origine barré-en-substance (plutôt que supprimé) pour que la trace de la décision reste lisible.
+>
+> **Implémenté à la place** : `Stock` (`id`, `store_id`, `product_id`, `quantity` `DECIMAL(12,3)`, `minimum_quantity` `DECIMAL(12,3)` nullable ; unique `(store_id, product_id)`) porte l'état courant. `StockMovement` reste le ledger append-only mais référence `stock_id` en plus de `product_id`, et n'a pas de `unit_cost` (reporté — aucun module Achats/Suppliers ne l'utilise encore). Les types retenus : `initial`, `purchase`, `sale`, `return_in`, `adjustment_in`, `adjustment_out`, `stocktake`, `loss` — pas de `transfer_in`/`transfer_out` (non demandés par cette phase, restent une conception documentée mais non implémentée). Voir [inventory.md](inventory.md) pour le détail complet (concurrence, immutabilité, permissions, contrat futur avec Sales).
+
+### StockMovement (conception d'origine, remplacée ci-dessus)
 Responsabilité : ledger append-only de tout changement de quantité. **Il n'existe pas de colonne "stock actuel" éditée directement** ; voir §11.
 - Attributs : `id`, `store_id`, `product_id`, `type` (`purchase`, `sale`, `loss`, `adjustment`, `return_in`, `stocktake`, `transfer_in`, `transfer_out`, `initial`), `quantity` (signé : positif = entrée, négatif = sortie), `unit_cost` (nullable, utile pour le coût moyen pondéré), `reference_type`/`reference_id` (morph, pointe vers `Sale`, `SaleItem`, un futur `PurchaseOrder`, ou rien pour un ajustement manuel), `note` (nullable), `created_by_user_id`.
 - Relations : `belongsTo(Product)`, `morphTo(reference)`.
@@ -156,13 +160,17 @@ Responsabilité : ledger append-only de tout changement de quantité. **Il n'exi
 
 ## 7. Sales
 
-### Sale
+> **Révision (Phase 4.3, 2026-09-26)** : même décision qu'en Phase 4.1/4.2 — le prompt de cette phase liste explicitement `SaleItem.product_id` (pas de morph `sellable_type`/`sellable_id`). `idempotency_key` était déjà anticipé ici avant même son implémentation ; aucun écart sur ce point.
+>
+> **Implémenté à la place** : `SaleItem` référence `product_id` directement (`Product` uniquement — `pricing_mode`/détail-gros n'a de sens que pour un `Product`, jamais pour un `Service`). Champs renommés vers la nomenclature du prompt : `discount_amount`/`total_amount` (pas `discount_total`/`tax_total`/`total` — pas de fiscalité, cohérent avec l'absence de taxe sur `Product`), `product_name`/`unit_price` (pas `label_snapshot`/`unit_price_snapshot` — le nom exprime déjà qu'il s'agit d'un instantané, documenté dans le modèle plutôt que dans le nom de colonne). Pas de `SalePayment` : un seul `payment_method` sur `Sale` (`cash` uniquement utilisable cette phase), le paiement mixte multi-lignes reste une conception future si un vrai module Payments est construit. Voir [sales.md](sales.md) pour le détail complet (Checkout, verrouillage, idempotence, intégrations Inventory/CashRegister).
+
+### Sale (conception d'origine, remplacée ci-dessus)
 - Attributs : `id`, `store_id`, `customer_id` (nullable — vente au comptoir sans client identifié), `cash_register_session_id`, `sold_by_user_id`, `status` (`completed`, `cancelled`, `refunded`, `partially_refunded`), `subtotal`, `discount_total`, `tax_total`, `total`, `idempotency_key` (nullable, généré par le client mobile), `sold_at`.
 - Relations : `hasMany(SaleItem)`, `hasMany(SalePayment)`, `belongsTo(Customer)`, `belongsTo(CashRegisterSession)`.
 - Index : `store_id`, `customer_id`, `sold_at`, `status`, (`store_id`,`idempotency_key`) unique.
 - Règles métier : `total` est toujours dérivé de `SaleItem` + remises + taxes, jamais saisi manuellement (recalcul serveur systématique, jamais fait confiance à un total envoyé par le client mobile). `idempotency_key` (ajouté suite à l'audit) : un client mobile sur réseau instable peut soumettre deux fois la même requête de création de vente (double tap, retry automatique) ; le client génère un UUID par tentative de vente et le backend retourne la `Sale` déjà créée (au lieu d'en recréer une seconde) si la même paire (`store_id`, `idempotency_key`) existe déjà — évite une double vente et un double décrément de stock.
 
-### SaleItem
+### SaleItem (conception d'origine, remplacée ci-dessus)
 - Attributs : `id`, `sale_id`, `sellable_type`, `sellable_id` (morph vers `Product` ou `Service`), `label_snapshot` (nom au moment de la vente, car un produit peut être renommé/supprimé après coup), `quantity`, `unit_price_snapshot`, `discount_amount`, `tax_amount`, `line_total`.
 - Règles métier : capture un instantané (`_snapshot`) du prix et du libellé pour que l'historique de vente reste correct même si le produit change de prix ou est supprimé plus tard (jamais de suppression physique d'un `Product` référencé — soft delete uniquement).
 
@@ -172,11 +180,15 @@ Responsabilité : ledger append-only de tout changement de quantité. **Il n'exi
 
 ## 8. CashRegister
 
-### CashRegisterSession
+> **Révision (Phase 4.2, 2026-09-25)** : le prompt de cette phase a demandé explicitement une entité `CashRegister` séparée (une boutique peut avoir plusieurs caisses physiques) là où la conception d'origine ci-dessous scopait `CashRegisterSession` directement au `store_id`, sous-entendant une seule caisse par boutique. Même décision qu'en Phase 4.1 (Inventory, voir §6) : la demande explicite de la phase l'emporte, documentée ici plutôt que silencieusement contredite.
+>
+> **Implémenté à la place** : `CashRegister` (`id`, `store_id`, `name`, `code` nullable unique par store, `is_active`, `open_session_id` — pointeur applicatif, pas de FK, vers la session actuellement ouverte) porte l'identité de la caisse. `CashRegisterSession` reste l'historique d'utilisation mais référence `cash_register_id` en plus de `store_id`, et les noms de champs suivent la nomenclature du prompt (`opening_amount`/`expected_closing_amount`/`actual_closing_amount`/`difference`/`closing_note`, pas `*_balance`). `CashTransaction` est remplacé par `CashMovement`, types `opening`/`cash_in`/`cash_out`/`adjustment`/`sale`/`refund` (pas `sale_in`/`refund_out`/`expense_out`/`deposit_in`/`withdrawal_out`). Voir [cash-register.md](cash-register.md) pour le détail complet (une seule session ouverte, concurrence, permissions, contrat futur avec Sales).
+
+### CashRegisterSession (conception d'origine, remplacée ci-dessus)
 - Attributs : `id`, `store_id`, `opened_by_user_id`, `closed_by_user_id` (nullable), `opening_balance`, `expected_closing_balance` (calculé), `actual_closing_balance` (nullable, saisi à la fermeture), `status` (`open`, `closed`), `opened_at`, `closed_at` (nullable).
 - Règles métier : une seule session `open` à la fois par store (contrainte applicative, pas SQL). L'écart `actual - expected` à la fermeture est un signal à faire remonter dans `Reports`.
 
-### CashTransaction
+### CashTransaction (conception d'origine, remplacée ci-dessus)
 - Attributs : `id`, `store_id`, `cash_register_session_id`, `type` (`sale_in`, `refund_out`, `expense_out`, `deposit_in`, `withdrawal_out`), `amount`, `reference_type`/`reference_id` (morph vers `Sale` si applicable), `note`, `created_by_user_id`.
 - Index : `cash_register_session_id`, `store_id`.
 
@@ -208,24 +220,29 @@ Responsabilité : ledger append-only de tout changement de quantité. **Il n'exi
 
 ## 11. Stock — décision d'architecture
 
+> **Révision (Phase 4.1, 2026-09-24)** : voir la note en tête de §6. Le principe ci-dessous ("jamais de mutation directe, toujours un mouvement qui la justifie, jamais de `SUM()` à la lecture") reste intégralement vrai et appliqué — seul le support physique du cache change : un modèle `Stock` séparé plutôt qu'une colonne sur `products`. Le verrou de concurrence (§ci-dessous) porte donc sur la ligne `Stock`, pas sur la ligne `Product`. Voir [inventory.md](inventory.md) §7 pour le code réellement implémenté.
+
 **Rejeté explicitement** : `product.stock = product.stock - 1` (aucune traçabilité, aucune possibilité d'audit ou de correction).
 
-**Retenu** : `StockMovement` en ledger append-only (§6) + colonne dénormalisée `products.current_stock` recalculée **à l'écriture** de chaque mouvement (dans la même transaction), pour que la lecture (liste produits, vérification de disponibilité avant vente) reste une simple lecture de colonne et non un `SUM()` sur potentiellement des milliers de mouvements. Le mouvement reste la source de vérité ; la colonne dénormalisée est un cache reconstructible (commande artisan de recalcul à prévoir pour la roadmap, en cas de divergence détectée).
+**Retenu à l'origine** : `StockMovement` en ledger append-only (§6) + colonne dénormalisée `products.current_stock` recalculée **à l'écriture** de chaque mouvement (dans la même transaction), pour que la lecture (liste produits, vérification de disponibilité avant vente) reste une simple lecture de colonne et non un `SUM()` sur potentiellement des milliers de mouvements. Le mouvement reste la source de vérité ; la colonne dénormalisée est un cache reconstructible (commande artisan de recalcul à prévoir pour la roadmap, en cas de divergence détectée). **Remplacé en Phase 4.1** par un modèle `Stock` séparé portant ce même cache (voir la révision ci-dessus) — le raisonnement sur le "pourquoi un cache plutôt qu'un `SUM()`" reste identique, seul l'emplacement du cache change.
 
 Cela couvre nativement tous les cas cités dans le besoin (achat +100, vente -5, perte -2, réappro +20, correction -1, retour, inventaire) comme des lignes du même mécanisme, sans entités séparées `StockEntry`/`StockExit`/`Adjustment` qui dupliqueraient la même structure sous des noms différents — un `type` suffit et simplifie les requêtes de reporting ("tous les mouvements de ce produit, quel que soit leur type").
 
-**Concurrence (point d'audit)** : deux ventes simultanées sur le même produit peuvent chacune lire `current_stock = 5` et accepter chacune une vente de 3, aboutissant à un stock réel de -1 alors que chaque vérification individuelle semblait correcte (race condition classique "lire-puis-écrire"). Parade obligatoire, à appliquer dans le service qui écrit un `StockMovement` : verrouiller la ligne `Product` en lecture avant de vérifier la disponibilité, à l'intérieur de la même transaction qui insère le mouvement et met à jour `current_stock` :
+**Concurrence (point d'audit, verrou déplacé sur `Stock` en Phase 4.1)** : deux ventes simultanées sur le même produit peuvent chacune lire `quantity = 5` et accepter chacune une vente de 3, aboutissant à un stock réel de -1 alors que chaque vérification individuelle semblait correcte (race condition classique "lire-puis-écrire"). Parade obligatoire, appliquée dans `InventoryService` (voir [inventory.md](inventory.md) §7) : verrouiller la ligne `Stock` en lecture avant de vérifier la disponibilité, à l'intérieur de la même transaction qui insère le mouvement et met à jour `quantity` — code réel :
 
 ```php
-DB::transaction(function () use ($productId, $quantity, ...) {
-    $product = Product::where('id', $productId)->lockForUpdate()->firstOrFail(); // SELECT ... FOR UPDATE
+DB::transaction(function () use ($product, $quantity, ...) {
+    $stock = Stock::where('product_id', $product->id)->lockForUpdate()->first(); // SELECT ... FOR UPDATE
 
-    if ($product->track_stock && $product->current_stock < $quantity) {
-        throw new InsufficientStockException($product);
+    if ($stock === null) {
+        throw new StockNotInitializedException(...);
+    }
+    if (bccomp($stock->quantity, $quantity, 3) < 0) {
+        throw InsufficientStockException::forProduct($product, $stock->quantity, $quantity);
     }
 
     StockMovement::create([...]);
-    $product->decrement('current_stock', $quantity); // dans la même transaction, verrou déjà tenu
+    $stock->update(['quantity' => bcsub($stock->quantity, $quantity, 3)]); // même transaction, verrou déjà tenu
 });
 ```
 

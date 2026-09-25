@@ -15,6 +15,11 @@ class ProductFactory extends Factory
 {
     protected $model = Product::class;
 
+    /**
+     * Default: retail only, the common case. Use wholesaleOnly() or
+     * retailAndWholesale() for the other two combinations described in
+     * docs/catalog.md §5.
+     */
     public function definition(): array
     {
         $name = fake()->unique()->words(3, true);
@@ -29,8 +34,31 @@ class ProductFactory extends Factory
             'barcode' => null,
             'unit' => ProductUnit::Piece->value,
             'purchase_price' => fake()->randomFloat(2, 100, 1000),
-            'selling_price' => fake()->randomFloat(2, 1000, 5000),
+            'retail_enabled' => true,
+            'retail_price' => fake()->randomFloat(2, 1000, 5000),
+            'wholesale_enabled' => false,
+            'wholesale_price' => null,
             'is_active' => true,
         ];
+    }
+
+    public function wholesaleOnly(): static
+    {
+        return $this->state(fn () => [
+            'retail_enabled' => false,
+            'retail_price' => null,
+            'wholesale_enabled' => true,
+            'wholesale_price' => fake()->randomFloat(2, 800, 4000),
+        ]);
+    }
+
+    public function retailAndWholesale(): static
+    {
+        return $this->state(fn () => [
+            'retail_enabled' => true,
+            'retail_price' => fake()->randomFloat(2, 1000, 5000),
+            'wholesale_enabled' => true,
+            'wholesale_price' => fake()->randomFloat(2, 800, 4000),
+        ]);
     }
 }

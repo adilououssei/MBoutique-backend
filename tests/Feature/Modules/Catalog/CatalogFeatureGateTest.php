@@ -46,7 +46,7 @@ class CatalogFeatureGateTest extends TestCase
 
         // The owner role has products.create, yet the feature itself is
         // off for this store's domain — FeatureGate wins regardless.
-        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'selling_price' => 100])
+        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'retail_enabled' => true, 'retail_price' => 100])
             ->assertStatus(403)
             ->assertJsonPath('code', 'FEATURE_DISABLED');
     }

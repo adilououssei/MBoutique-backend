@@ -2,10 +2,13 @@
 
 namespace App\Modules\Tenancy\Models;
 
+use App\Modules\CashRegister\Models\CashRegister;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\Service;
+use App\Modules\Customers\Models\Customer;
 use App\Modules\Features\Models\BusinessDomain;
+use App\Modules\Sales\Models\Sale;
 use App\Modules\Tenancy\Enums\StoreStatus;
 use Database\Factories\Modules\Tenancy\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -79,5 +82,20 @@ class Store extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
+    public function cashRegisters(): HasMany
+    {
+        return $this->hasMany(CashRegister::class);
+    }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
     }
 }

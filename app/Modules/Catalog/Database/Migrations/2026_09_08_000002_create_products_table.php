@@ -22,7 +22,13 @@ return new class extends Migration
             $table->string('barcode')->nullable();
             $table->string('unit')->default('piece');
             $table->decimal('purchase_price', 12, 2)->nullable();
-            $table->decimal('selling_price', 12, 2);
+            // Détail/Gros: two independent price slots, each guarded by
+            // its own *_enabled flag. Enforced at the FormRequest layer
+            // (CreateProductRequest/UpdateProductRequest) — see docs/catalog.md.
+            $table->boolean('retail_enabled')->default(false);
+            $table->decimal('retail_price', 12, 2)->nullable();
+            $table->boolean('wholesale_enabled')->default(false);
+            $table->decimal('wholesale_price', 12, 2)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();

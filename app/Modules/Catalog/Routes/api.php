@@ -2,6 +2,7 @@
 
 use App\Modules\Catalog\Http\Controllers\CategoryController;
 use App\Modules\Catalog\Http\Controllers\ProductController;
+use App\Modules\Catalog\Http\Controllers\ProductImportController;
 use App\Modules\Catalog\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,11 @@ Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('stores/{s
     });
 
     Route::middleware('feature:products')->group(function () {
+        // Declared before the apiResource so they read clearly as their
+        // own thing, even though "import"/"import/template" never
+        // collide with the {product} wildcard routes below.
+        Route::get('products/import/template', [ProductImportController::class, 'template'])->name('products.import.template');
+        Route::post('products/import', [ProductImportController::class, 'store'])->name('products.import');
         Route::apiResource('products', ProductController::class);
     });
 

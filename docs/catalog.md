@@ -1,83 +1,173 @@
-# Catalog (Phase 3)
+# Catalog (Phase 3 — révision « Catalog avancé »)
 
-Module `app/Modules/Catalog/`. Le socle générique de ce qu'une boutique vend, valable pour tout métier — voir `docs/database.md` §5/§10 pour la décision d'architecture d'origine, confirmée et implémentée ici sans modification.
+Module `app/Modules/Catalog/`. Le socle générique de ce qu'une boutique vend, valable pour tout métier — voir `docs/database.md` §5/§10 pour la décision d'architecture d'origine.
 
-## 1. Category, Product, Service
+> **Révision (2026-09-23)** : cette version remplace la Phase 3 initiale (`selling_price` unique) par une tarification détail/gros sur `Product`, ajoute l'import Excel et prépare l'architecture de création vocale, conformément au nouveau prompt de phase qui a explicitement remplacé l'ancien. `Category` et `Service` sont inchangés par rapport à la version précédente.
 
-Trois modèles, tenant-scopés (`BelongsToStore`), soft-deletable :
+## 1. Category
 
-| Modèle | Rôle | Champs propres |
+Partagée entre `Product` et `Service` — un seul arbre de catégories par boutique, pas un par type de catalogue. Champs : `name`, `slug` (unique par store), `description`, `is_active`. Tenant-scopée (`BelongsToStore`), soft-deletable.
+
+## 2. Product
+
+Bien physique. Champs propres :
+
+| Champ | Type | Règle |
 |---|---|---|
-| `Category` | **Partagée** entre Product et Service — un seul arbre de catégories par boutique, pas un par type de catalogue | `name`, `slug` (unique par store), `description`, `is_active` |
-| `Product` | Bien physique | `sku`/`barcode` (nullable, uniques par store), `unit` (enum `ProductUnit`), `purchase_price`/`selling_price` (`DECIMAL(12,2)`) |
-| `Service` | Prestation | `price` (`DECIMAL(12,2)`), `duration_minutes` (nullable) |
+| `sku` / `barcode` | `string` nullable | uniques par store |
+| `unit` | enum `ProductUnit` (`piece`, `kg`, `g`, `litre`, `ml`, `box`, `pack`) | unité, indépendante du mode de vente — voir §5 |
+| `purchase_price` | `DECIMAL(12,2)` nullable | prix d'achat |
+| `retail_enabled` / `retail_price` | `bool` / `DECIMAL(12,2)` nullable | voir §5 |
+| `wholesale_enabled` / `wholesale_price` | `bool` / `DECIMAL(12,2)` nullable | voir §5 |
 
-**Écart assumé vs la conception d'origine** (`database.md` avant cette phase) : pas de `is_taxable`/`tax_rate` sur Product/Service — la consigne de cette phase donne une liste d'attributs minimale qui ne les inclut pas, et rien à ce stade (pas de module Sales) n'en a besoin. Ajouté seulement quand un cas concret l'exigera, pas par anticipation. `ProductCategory`/`ServiceCategory` séparées (envisagées dans la conception d'origine) sont fusionnées en une seule `Category`, conformément à la consigne explicite de cette phase.
+`selling_price` (version précédente) a été **retiré**, pas ajouté à côté — un seul prix par mode, pas de troisième prix générique qui ferait doublon.
 
-## 2. Sellable
+## 3. Service
+
+Inchangé : `price` (`DECIMAL(12,2)`), `duration_minutes` nullable, pas de détail/gros (une prestation n'a qu'un prix).
+
+## 4. Tarification Détail / Gros (Product uniquement)
+
+Un produit peut être vendu en détail uniquement, en gros uniquement, ou les deux — jamais l'inverse d'« aucun des deux avec un prix quand même ». Invariant appliqué à deux niveaux :
+
+1. **`App\Modules\Catalog\Support\ProductRules`** (Couche validation, `retail_price`/`wholesale_price` : `required_if:*_enabled,true` + `prohibited_unless:*_enabled,true`, toutes deux des règles implicites donc évaluées même sur un payload partiel où le champ est totalement absent).
+2. **`Product::booted()`** (`static::saving`) : si `*_enabled` est `false`, force `*_price` à `null` avant l'écriture, quel que soit le point d'entrée (manuel, import, vocal futur, ou un appel Eloquent direct dans un test). Nécessaire parce qu'une mise à jour partielle peut désactiver `retail_enabled` sans jamais toucher `retail_price` dans le payload — la validation seule ne suffit pas à garantir l'état **stocké**.
+
+`unit` (l'unité physique) et `retail_enabled`/`wholesale_enabled` (le mode commercial) sont deux concepts indépendants, jamais fusionnés.
+
+## 5. Sellable
 
 ```php
 interface Sellable
 {
     public function getSellableLabel(): string;
-    public function getSellablePrice(): string; // decimal string, jamais un float
+    public function getSellablePrice(): string; // prix d'affichage générique, jamais un float
     public function tracksStock(): bool;
 }
 ```
 
-Implémentée par `Product` (`tracksStock() = true`) et `Service` (`tracksStock() = false`). Placée dans `app/Shared/Contracts/` (pas dans `Modules/Catalog/`), conformément à `docs/modules.md` : "Le contrat `Sellable` reste la bonne solution quand un module doit traiter plusieurs types d'un autre module de façon polymorphique."
+Implémentée par `Product` et `Service`, placée dans `app/Shared/Contracts/`. `Product::getSellablePrice()` retourne `retail_price ?? wholesale_price` — un prix d'affichage générique (listes, recherche), **pas** ce qu'un futur Sales doit utiliser pour calculer une vente : voir §9 pour le contrat réel. Aucune relation polymorphique (`morphTo`) n'existe encore ; le morph map (`'product' => Product::class`, `'service' => Service::class`) est déjà enregistré dans `CatalogServiceProvider::boot()`.
 
-**Ce qui n'est PAS fait maintenant, volontairement** : aucune relation polymorphique (`morphTo`) n'existe encore — elle apparaîtra sur `SaleItem`/`OrderItem` en Phase 4/5, quand ces tables existeront. `Sellable` est prête à être consommée à ce moment sans modification. Le morph map (`'product' => Product::class`, `'service' => Service::class`) est déjà enregistré dans `CatalogServiceProvider::boot()`, avant qu'aucune ligne polymorphique existe — pour qu'aucune donnée historique ne soit jamais écrite avec un nom de classe complet.
+## 6. Contrat commun de création
 
-**Pourquoi une interface plutôt qu'une table unique polymorphique** : cf. `database.md` §10 — évite les colonnes nullable qui ne s'appliquent qu'à un type, tout en donnant à un futur `SaleItem` un point d'intégration unique. Pas d'over-engineering : pas de classe abstraite, pas de trait partagé forcé, juste une interface à deux méthodes + un booléen.
+Les trois méthodes (manuelle, Excel, vocale) convergent vers la **même** logique, pas trois services parallèles :
 
-## 3. Isolation multi-tenant
+```
+Manuel (CreateProductRequest)  ─┐
+Excel (ProductImportService)   ─┼─▶ App\Modules\Catalog\Support\ProductRules::rules()
+Vocal (VoiceProductParser, futur) ─┘         │
+                                              ▼
+                                   Validator::make(...)
+                                              │
+                                              ▼
+                                   App\Modules\Catalog\Services\ProductService
+                                              │
+                                              ▼
+                                           Product
+```
 
-Trois couches, comme partout ailleurs dans le projet :
+`ProductRules::rules(mixed $ignore = null, bool $partial = false)` est la seule source de vérité des règles (noms, unicité par store via `TenantScopedRules`, contrainte détail/gros). `CreateProductRequest`/`UpdateProductRequest` l'appellent directement ; `ProductImportService` construit un tableau normalisé par ligne puis appelle `Validator::make($row, ProductRules::rules())` — mêmes règles, aucune validation "allégée" pour l'import (voir §7). `ProductService::create()`/`update()` est le seul point d'écriture en base ; aucun des trois chemins n'appelle `Product::create()` directement.
 
-1. **`BelongsToStore`** (Couche 2) sur les trois modèles — `store_id` toujours forcé depuis `TenantContext`, jamais depuis le payload client, immuable après création. Aucune nouveauté : réutilise le mécanisme déjà audité en Phase 1.
-2. **Scoped route model binding** (Couche 6) — `Route::scopeBindings()` sur tout le groupe `stores/{store}/...` du module. `Category`, `Product`, `Service` exposent chacune une relation `store(): BelongsTo` : c'est ce qui permet à Laravel de vérifier, **au niveau du routage, avant tout code applicatif**, qu'un `{product}` référencé sous `/stores/{storeA}/products/{id}` appartient bien à `storeA` — sinon 404 immédiat. C'est la **première utilisation réelle** de ce mécanisme dans le projet (documenté dès l'audit, jamais consommé avant faute d'endpoint qui en avait besoin).
-3. **Policies** (`CategoryPolicy`, `ProductPolicy`, `ServicePolicy`) — filet de sécurité en cas de défaillance de la couche 2, vérifient explicitement `$model->store_id === $store->id` en plus de la permission spatie. Voir §5.
+## 7. Création manuelle
 
-**Validation tenant-aware (Couche 5)** : `category_id` fourni à la création/modification d'un Product/Service est validé par `TenantScopedRules::existsInCurrentStore('categories')` — **premier consommateur réel** de ce mécanisme construit (et seulement testé en isolation) en Phase 1. `sku`/`barcode`/`slug` utilisent `TenantScopedRules::uniqueInCurrentStore()` (nouvelle méthode ajoutée cette phase), scopés par store et non globalement.
+`POST /api/stores/{store}/products` avec `CreateProductRequest` (slug auto-dérivé du nom si absent). `PUT /api/stores/{store}/products/{product}` avec `UpdateProductRequest` (payload partiel, `sometimes` partout).
 
-## 4. Authorization vs FeatureGate — ne pas confondre
+## 8. Import Excel
+
+Dépendance ajoutée (approuvée) : `maatwebsite/excel` ^4.0 — aucune librairie Excel n'existait dans le projet, et écrire un parseur XLSX à la main aurait été une réinvention coûteuse pour un besoin standard.
+
+- `POST /api/stores/{store}/products/import` — `multipart/form-data`, champ `file`. `ImportProductsRequest` vérifie `mimes:xlsx,xls` (contenu réel via fileinfo, pas seulement l'extension) et `max:5120` (5 Mo).
+- `GET /api/stores/{store}/products/import/template` — télécharge un `.xlsx` (`ProductImportTemplateExport`) avec les colonnes attendues et une ligne d'exemple.
+
+**Colonnes du modèle** : `name`, `category`, `description`, `sku`, `barcode`, `unit`, `purchase_price`, `retail_enabled`, `retail_price`, `wholesale_enabled`, `wholesale_price`, `is_active`. Les en-têtes sont lus via `WithHeadingRow` (normalisation `snake_case` automatique), donc robustes à la casse/espacement, mais les noms de colonnes eux-mêmes doivent correspondre.
+
+**Résolution de `category` par nom** (§ligne) : recherche `Category::where('store_id', $store->id)->whereRaw('LOWER(name) = ?', ...)` — **jamais** globale. Catégorie absente → **ligne rejetée** avec une erreur explicite (`"La catégorie \"X\" est introuvable dans cette boutique."`), jamais créée automatiquement.
+
+**Stratégie transactionnelle (décision documentée)** : *pas* une transaction unique englobant tout le fichier. Chaque ligne valide est créée (et commitée) dès sa validation ; une ligne invalide est ajoutée au rapport et n'interrompt pas le traitement des suivantes. Résultat : import partiel avec rapport d'erreurs, jamais un rollback total à cause d'une seule ligne fautive — conforme au choix demandé en §17 du prompt de phase. Une ligne dupliquée (même SKU) **dans le même fichier** est détectée : les lignes sont traitées séquentiquement, donc la 2ᵉ occurrence trouve la 1ʳᵉ déjà en base au moment de sa validation.
+
+**Limite de lignes** : au-delà de 2000 lignes de données, le fichier entier est rejeté avant tout traitement (`ProductImportRejectedException`, HTTP 422) — pas de traitement partiel d'un fichier disproportionné. Un fichier illisible/corrompu est rejeté de la même façon plutôt que de remonter une 500.
+
+**Format de la réponse** (stable, exploitable par un futur frontend) :
+
+```json
+{
+  "success": true,
+  "message": "487 produit(s) importé(s), 13 rejeté(s).",
+  "data": {
+    "total_rows": 500,
+    "imported": 487,
+    "rejected": 13,
+    "errors": [
+      { "line": 27, "errors": { "category": ["La catégorie \"Boisson\" est introuvable dans cette boutique."] } },
+      { "line": 84, "errors": { "sku": ["The sku has already been taken."] } }
+    ]
+  }
+}
+```
+
+`line` compte la ligne réelle du fichier Excel (l'en-tête est la ligne 1, donc la première ligne de données est `2`).
+
+## 9. Préparation de la création vocale
+
+`App\Modules\Catalog\Contracts\VoiceProductParser` — interface à une méthode, **aucune implémentation, aucun fournisseur IA lié**, conformément à la consigne de ne rien imposer prématurément :
+
+```php
+interface VoiceProductParser
+{
+    public function parse(string $transcript): array; // shape ProductRules::rules()
+}
+```
+
+Architecture future documentée (non codée) :
+
+```
+Mobile → audio → Speech-to-Text → VoiceProductParser::parse()
+   → tableau structuré → ProductRules::rules() → Validator → ProductService → Product
+```
+
+Quand un fournisseur sera choisi : une classe concrète implémente l'interface, se lie dans `CatalogServiceProvider::register()` (`$this->app->bind(VoiceProductParser::class, ConcreteParser::class)`), et un contrôleur/route est ajouté — sans toucher `ProductRules` ni `ProductService`. L'IA ne doit jamais écrire directement en base ; elle ne produit que des données structurées, revalidées comme n'importe quel autre chemin.
+
+## 10. Isolation multi-tenant
+
+Trois couches, comme partout ailleurs :
+
+1. **`BelongsToStore`** sur `Category`/`Product`/`Service` — `store_id` forcé depuis `TenantContext`, jamais depuis le payload client.
+2. **Scoped route model binding** (`Route::scopeBindings()`) sur tout le groupe `stores/{store}/...` — un `{product}` d'un autre store 404 avant tout code applicatif.
+3. **Policies** (`CategoryPolicy`, `ProductPolicy`, `ServicePolicy`) — filet de sécurité vérifiant explicitement `$model->store_id === $store->id`.
+
+**Validation tenant-aware** : `category_id` (saisie manuelle ou résolu par nom à l'import) est toujours vérifié par `TenantScopedRules::existsInCurrentStore('categories')`. `sku`/`barcode`/`slug` utilisent `TenantScopedRules::uniqueInCurrentStore()`, scopés par store. L'import ne bénéficie d'aucun raccourci : il passe par les mêmes règles.
+
+## 11. Authorization vs FeatureGate
 
 | Mécanisme | Répond à | Implémenté par |
 |---|---|---|
-| **FeatureGate** | "Cette boutique a-t-elle la capacité `products` ?" | Middleware `feature:products`/`feature:categories`/`feature:services`, avant tout le reste |
-| **Authorization** | "Cet utilisateur a-t-il `products.create` ?" | Policy (`$user->can(...)` à l'intérieur), après FeatureGate |
+| **FeatureGate** | "Cette boutique a-t-elle la capacité `products` ?" | Middleware `feature:products` (les routes d'import sont **dans le même groupe** `feature:products` — pas de feature `catalog.product_import` séparée : importer des produits n'est pas une capacité distincte d'« avoir des produits », voir §12) |
+| **Authorization** | "Cet utilisateur a-t-il `products.import` ?" | `ProductPolicy::import()`, après FeatureGate |
 
-Les features consommées (`categories`, `products`, `services`) **existaient déjà**, seedées en Phase 2 (`FeatureSeeder`) — aucune nouvelle Feature créée cette phase, conformément à la nomenclature déjà en place (pas de préfixe `catalog.` inventé). Une boutique `hair_salon` (qui n'active ni `products` ni `categories` par défaut) reçoit un `403 FEATURE_DISABLED` sur ces routes, **même pour son propriétaire** qui a pourtant `products.create` — testé explicitement (`CatalogFeatureGateTest`), preuve que les deux mécanismes restent indépendants.
+## 12. Permissions
 
-## 5. Permissions ajoutées
+Ajout de `products.import` (à côté de `products.{view,create,update,delete}` déjà existants) — pas de préfixe `catalog.` inventé, cohérent avec la nomenclature déjà en place. Accordée à `owner`/`admin`/`manager` (même niveau que `products.create`), pas à `cashier`/`employee` (lecture seule).
 
-`categories.{view,create,update,delete}`, `products.{view,create,update,delete}`, `services.{view,create,update,delete}` — ajoutées à `App\Modules\Authorization\Support\Permissions` et au mapping `StoreRole::defaultPermissions()` :
+Aucune nouvelle `Feature` créée : `categories`, `products`, `services` existaient déjà depuis la Phase 2 (`FeatureSeeder`) et couvrent aussi l'import — la nomenclature existante ne prévoit pas de feature par sous-action.
 
-| Rôle | Accès catalogue |
-|---|---|
-| owner / admin / manager | CRUD complet |
-| cashier / employee | lecture seule |
+## 13. Filtres, pagination, ressources
 
-Manager reçoit l'accès complet conformément à `docs/permissions.md` §3, qui nomme déjà explicitement "produits" dans son périmètre de "gestion quotidienne".
+`GET /products` accepte `search`, `category_id`, `is_active`, et désormais `selling_mode=retail|wholesale` (utile au futur frontend de caisse, non implémenté ici). Pagination `?per_page=` (défaut 20, plafond 100), inchangée. `ProductResource` expose `purchase_price`, `retail_enabled`, `retail_price`, `wholesale_enabled`, `wholesale_price` (plus `selling_price`).
 
-## 6. Écart de conception assumé : Policy plutôt que middleware `permission:*` seul
+## 14. Futur contrat avec Sales
 
-`StoreMemberController` (Phase 1) utilisait uniquement le middleware `permission:store_users.manage`, sans Policy. Pour Catalog, une Policy est utilisée pour **chaque** action (y compris `viewAny`/`create`, sans instance), combinant le contrôle "bonne boutique" et "bonne permission" en un seul endroit — conforme à la règle de sécurité déjà actée à l'audit ("aucune route retournant une ressource par ID sans Policy associée"). Différence mineure et assumée avec le précédent de Phase 1 ; non rétro-appliquée à `StoreMemberController` (hors périmètre de cette phase), à harmoniser dans un futur nettoyage si jugé utile.
+Sales n'est pas implémenté dans cette phase. Ce qu'il pourra envoyer, conceptuellement :
 
-## 7. API
-
-```
-GET/POST    /api/stores/{store}/categories[/{category}]
-GET/POST    /api/stores/{store}/products[/{product}]
-GET/POST    /api/stores/{store}/services[/{service}]
-PUT/DELETE  ... /{category|product|service}
+```json
+{ "product_id": 15, "quantity": 20, "pricing_mode": "wholesale" }
 ```
 
-Pagination : `?per_page=` (défaut 20, plafonné à 100). Filtres : `search` (nom), `is_active`, `category_id` (Product/Service uniquement). Enveloppe JSON standard (`ApiResponse`), `ProductResource`/`ServiceResource` chargent `category` uniquement si explicitement demandé (`whenLoaded`), jamais de colonnes internes (`deleted_at` notamment) exposées.
+Le backend Sales devra alors : (1) vérifier que `Product` appartient au store courant (scoped binding, comme partout) ; (2) appeler `Product::priceFor(PricingMode::Wholesale)` — lève une `InvalidArgumentException` si `wholesale_enabled` est `false`, donc Sales ne peut jamais vendre à un prix désactivé ; (3) calculer le montant côté serveur. Le frontend n'est jamais la source de vérité du prix. `Product::priceFor()` existe déjà (Catalog), prêt à être appelé — aucune logique de vente n'est ajoutée ici.
 
-## 8. Ce qui est volontairement laissé à Inventory / Sales
+## 15. Ce qui est volontairement laissé à Inventory / Sales / une phase future
 
-- Aucune colonne de stock/quantité sur `Product` — `tracksStock(): bool` existe précisément pour que la future Inventory sache QUOI suivre, sans que Catalog sache COMMENT.
+- Aucune colonne de stock sur `Product` — `tracksStock(): bool` existe pour qu'Inventory sache QUOI suivre, sans savoir COMMENT.
 - Aucune relation polymorphique construite — attend `SaleItem`/`OrderItem`.
-- Aucune notion de panier, prix promotionnel, taxe : hors périmètre, non anticipé.
+- Aucune contrainte "au moins un mode de vente actif" — non demandée par la phase, un produit avec `retail_enabled=false` et `wholesale_enabled=false` est acceptée par la validation (par ex. un produit en cours de préparation).
+- Speech-to-Text réel et fournisseur IA : non choisis, non intégrés (§9).
+- `Customers` : toujours non traité (reporté depuis la Phase 3 initiale, hors périmètre de cette révision).

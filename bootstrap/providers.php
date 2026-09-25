@@ -1,7 +1,11 @@
 <?php
 
+use App\Modules\CashRegister\Providers\CashRegisterServiceProvider;
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
+use App\Modules\Customers\Providers\CustomersServiceProvider;
 use App\Modules\Features\Providers\FeaturesServiceProvider;
+use App\Modules\Inventory\Providers\InventoryServiceProvider;
+use App\Modules\Sales\Providers\SalesServiceProvider;
 use App\Modules\Subscriptions\Providers\SubscriptionsServiceProvider;
 use App\Modules\Tenancy\Providers\TenancyServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -12,4 +16,8 @@ return [
     FeaturesServiceProvider::class,
     SubscriptionsServiceProvider::class,
     CatalogServiceProvider::class,
+    CustomersServiceProvider::class,
+    InventoryServiceProvider::class,
+    CashRegisterServiceProvider::class,
+    SalesServiceProvider::class,
 ];

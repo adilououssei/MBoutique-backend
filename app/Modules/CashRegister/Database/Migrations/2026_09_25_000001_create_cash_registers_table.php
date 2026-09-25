@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('cash_registers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->string('code')->nullable();
+            $table->boolean('is_active')->default(true);
+            // No FK constraint: cash_register_sessions (created in the
+            // next migration) references cash_registers, so a real FK
+            // here would be circular. The only writer is
+            // CashRegisterService, inside the same transaction that also
+            // updates cash_register_sessions.status — see docs/cash-register.md
+            // §"Une seule session ouverte". unique(): a session id can
+            // only ever be "the open one" for a single register.
+            $table->unsignedBigInteger('open_session_id')->nullable()->unique();
+            $table->timestamps();
+
+            // Nullable code: MySQL and SQLite both treat NULL as distinct
+            // in a unique index, so any number of code-less registers
+            // are allowed per store, while two registers that DO have a
+            // code must not collide.
+            $table->unique(['store_id', 'code']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('cash_registers');
+    }
+};

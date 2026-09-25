@@ -35,7 +35,7 @@ final class StoreRole
     {
         $catalogFullAccess = [
             Permissions::CATEGORIES_VIEW, Permissions::CATEGORIES_CREATE, Permissions::CATEGORIES_UPDATE, Permissions::CATEGORIES_DELETE,
-            Permissions::PRODUCTS_VIEW, Permissions::PRODUCTS_CREATE, Permissions::PRODUCTS_UPDATE, Permissions::PRODUCTS_DELETE,
+            Permissions::PRODUCTS_VIEW, Permissions::PRODUCTS_CREATE, Permissions::PRODUCTS_UPDATE, Permissions::PRODUCTS_DELETE, Permissions::PRODUCTS_IMPORT,
             Permissions::SERVICES_VIEW, Permissions::SERVICES_CREATE, Permissions::SERVICES_UPDATE, Permissions::SERVICES_DELETE,
         ];
 
@@ -43,14 +43,68 @@ final class StoreRole
             Permissions::CATEGORIES_VIEW, Permissions::PRODUCTS_VIEW, Permissions::SERVICES_VIEW,
         ];
 
+        // "Caissier: ... lecture seule sur produits/clients" — docs/permissions.md
+        // §3 already settles customers at read-only for cashier, same as catalog.
+        $customersFullAccess = [
+            Permissions::CUSTOMERS_VIEW, Permissions::CUSTOMERS_CREATE, Permissions::CUSTOMERS_UPDATE, Permissions::CUSTOMERS_DELETE,
+        ];
+
+        $customersReadOnly = [
+            Permissions::CUSTOMERS_VIEW,
+        ];
+
+        // "Manager: gestion quotidienne (produits, stock, ventes, ...)"
+        // — docs/permissions.md §3 names "stock" explicitly, so manager
+        // gets full inventory access, same tier as catalog/customers.
+        $inventoryFullAccess = [
+            Permissions::INVENTORY_VIEW, Permissions::INVENTORY_ADJUST, Permissions::INVENTORY_STOCKTAKE,
+        ];
+
+        $inventoryReadOnly = [
+            Permissions::INVENTORY_VIEW,
+        ];
+
+        $cashRegisterFullAccess = [
+            Permissions::CASH_REGISTER_VIEW, Permissions::CASH_REGISTER_MANAGE, Permissions::CASH_REGISTER_OPEN,
+            Permissions::CASH_REGISTER_CLOSE, Permissions::CASH_REGISTER_ADJUST,
+        ];
+
+        // "Caissier : sales.create, sales.view, cash_register.*, ..."
+        // — docs/permissions.md §3, written before MANAGE (till CRUD)
+        // existed as a distinct permission. Read literally today,
+        // MANAGE is a setup task (defining the physical registers a
+        // store owns), not a daily cashier operation — a cashier keeps
+        // every *operational* permission the note names (view/open/
+        // close/adjust), not the till-configuration one it never
+        // anticipated. See docs/cash-register.md §"Permissions".
+        $cashRegisterCashierAccess = [
+            Permissions::CASH_REGISTER_VIEW, Permissions::CASH_REGISTER_OPEN,
+            Permissions::CASH_REGISTER_CLOSE, Permissions::CASH_REGISTER_ADJUST,
+        ];
+
+        $cashRegisterReadOnly = [
+            Permissions::CASH_REGISTER_VIEW,
+        ];
+
+        $salesFullAccess = [
+            Permissions::SALES_VIEW, Permissions::SALES_CREATE,
+        ];
+
+        $salesReadOnly = [
+            Permissions::SALES_VIEW,
+        ];
+
         return [
-            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess],
-            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess],
-            // "Manager: gestion quotidienne (produits, stock, ventes, ...)"
-            // — docs/permissions.md §3 already names produits explicitly.
-            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess],
-            self::CASHIER => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly],
-            self::EMPLOYEE => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly],
+            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
+            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
+            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
+            // Cashier: read-only everywhere else, but operates the
+            // register fully (opens/closes their own shift, cash in/out)
+            // and processes sales — "Caissier : sales.create, sales.view,
+            // cash_register.*, ..." (docs/permissions.md §3, confirmed
+            // literally for sales, unlike cash_register.manage — see above).
+            self::CASHIER => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterCashierAccess, ...$salesFullAccess],
+            self::EMPLOYEE => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterReadOnly, ...$salesReadOnly],
         ];
     }
 

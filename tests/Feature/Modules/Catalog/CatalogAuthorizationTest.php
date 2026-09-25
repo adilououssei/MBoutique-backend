@@ -29,7 +29,7 @@ class CatalogAuthorizationTest extends TestCase
 
         $this->getJson("/api/stores/{$store->id}/products")->assertStatus(200);
 
-        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'selling_price' => 100])
+        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'retail_enabled' => true, 'retail_price' => 100])
             ->assertStatus(403);
     }
 
@@ -43,7 +43,7 @@ class CatalogAuthorizationTest extends TestCase
 
         Sanctum::actingAs($manager);
 
-        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'selling_price' => 100])
+        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'retail_enabled' => true, 'retail_price' => 100])
             ->assertStatus(201);
     }
 

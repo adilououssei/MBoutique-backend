@@ -23,6 +23,11 @@ class ProductPolicy
         return $user->can('products.create');
     }
 
+    public function import(User $user, Store $store): bool
+    {
+        return $user->can('products.import');
+    }
+
     public function update(User $user, Product $product, Store $store): bool
     {
         return $product->store_id === $store->id && $user->can('products.update');
