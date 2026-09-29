@@ -17,28 +17,28 @@ use Laravel\Sanctum\Sanctum;
  */
 trait CreatesStoresWithFeatures
 {
-    /** @return array{owner: User, store: Store, businessId: int} */
+    /** @return array{proprietaire: User, store: Store, businessId: int} */
     protected function createStoreWithFeatures(array $enabledFeatureSlugs): array
     {
         $domain = BusinessDomain::factory()->create();
 
         foreach ($enabledFeatureSlugs as $slug) {
-            $feature = Feature::firstOrCreate(['slug' => $slug], ['name' => $slug]);
+            $feature = Feature::firstOrCreate(['slug' => $slug], ['nom' => $slug]);
             DomainFeature::create([
-                'business_domain_id' => $domain->id,
-                'feature_id' => $feature->id,
-                'is_default_enabled' => true,
+                'domaine_activite_id' => $domain->id,
+                'fonctionnalite_id' => $feature->id,
+                'active_par_defaut' => true,
             ]);
         }
 
         $owner = User::factory()->create();
         Sanctum::actingAs($owner);
-        $businessId = $this->postJson('/api/businesses', ['name' => 'Boutique Test'])->json('data.id');
-        $storeId = $this->postJson("/api/businesses/{$businessId}/stores", [
-            'name' => 'Store Test',
-            'business_domain_id' => $domain->id,
-        ])->json('data.id');
+        $businessId = $this->postJson('/api/entreprises', ['nom' => 'Boutique Test'])->json('donnees.id');
+        $storeId = $this->postJson("/api/entreprises/{$businessId}/boutiques", [
+            'nom' => 'Store Test',
+            'domaine_activite_id' => $domain->id,
+        ])->json('donnees.id');
 
-        return ['owner' => $owner, 'store' => Store::findOrFail($storeId), 'businessId' => $businessId];
+        return ['proprietaire' => $owner, 'store' => Store::findOrFail($storeId), 'businessId' => $businessId];
     }
 }

@@ -8,6 +8,7 @@ use App\Modules\Tenancy\Models\Store;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\CashRegister\CashRegisterSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * computed by CashRegisterService from the ledger at close time — never
  * accepted from the client. See docs/cash-register.md.
  */
-#[Fillable(['cash_register_id', 'opened_by_user_id', 'closed_by_user_id', 'opened_at', 'closed_at', 'opening_amount', 'expected_closing_amount', 'actual_closing_amount', 'difference', 'status', 'closing_note'])]
+#[Fillable(['caisse_id', 'ouverte_par_id', 'fermee_par_id', 'ouverte_le', 'fermee_le', 'montant_ouverture', 'montant_fermeture_attendu', 'montant_fermeture_reel', 'ecart', 'statut', 'note_fermeture'])]
+#[Table('sessions_caisse')]
 class CashRegisterSession extends Model
 {
     use BelongsToStore, HasFactory;
@@ -26,13 +28,13 @@ class CashRegisterSession extends Model
     protected function casts(): array
     {
         return [
-            'status' => CashRegisterSessionStatus::class,
-            'opened_at' => 'datetime',
-            'closed_at' => 'datetime',
-            'opening_amount' => 'decimal:2',
-            'expected_closing_amount' => 'decimal:2',
-            'actual_closing_amount' => 'decimal:2',
-            'difference' => 'decimal:2',
+            'statut' => CashRegisterSessionStatus::class,
+            'ouverte_le' => 'datetime',
+            'fermee_le' => 'datetime',
+            'montant_ouverture' => 'decimal:2',
+            'montant_fermeture_attendu' => 'decimal:2',
+            'montant_fermeture_reel' => 'decimal:2',
+            'ecart' => 'decimal:2',
         ];
     }
 
@@ -43,31 +45,31 @@ class CashRegisterSession extends Model
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'boutique_id');
     }
 
     public function cashRegister(): BelongsTo
     {
-        return $this->belongsTo(CashRegister::class);
+        return $this->belongsTo(CashRegister::class, 'caisse_id');
     }
 
     public function openedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'opened_by_user_id');
+        return $this->belongsTo(User::class, 'ouverte_par_id');
     }
 
     public function closedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'closed_by_user_id');
+        return $this->belongsTo(User::class, 'fermee_par_id');
     }
 
     public function movements(): HasMany
     {
-        return $this->hasMany(CashMovement::class);
+        return $this->hasMany(CashMovement::class, 'session_caisse_id');
     }
 
     public function isOpen(): bool
     {
-        return $this->status === CashRegisterSessionStatus::Open;
+        return $this->statut === CashRegisterSessionStatus::Open;
     }
 }

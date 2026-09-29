@@ -5,7 +5,7 @@ namespace App\Modules\CashRegister\Enums;
 /**
  * `Opening` mirrors Inventory's `StockMovementType::Initial` (see
  * docs/inventory.md): the amount a session starts with is a first-class
- * ledger entry, not a bare `opening_amount` column with the ledger
+ * ledger entry, not a bare `montant_ouverture` column with the ledger
  * starting at 0 — see docs/cash-register.md §"Ouverture et premier mouvement".
  *
  * `Sale`/`Refund` exist so the ledger already knows how to represent
@@ -14,12 +14,12 @@ namespace App\Modules\CashRegister\Enums;
  */
 enum CashMovementType: string
 {
-    case Opening = 'opening';
-    case CashIn = 'cash_in';
-    case CashOut = 'cash_out';
-    case Adjustment = 'adjustment';
-    case Sale = 'sale';
-    case Refund = 'refund';
+    case Opening = 'ouverture';
+    case CashIn = 'entree';
+    case CashOut = 'sortie';
+    case Adjustment = 'ajustement';
+    case Sale = 'vente';
+    case Refund = 'remboursement';
 
     /** @return array<int, self> */
     public static function manuallyRecordable(): array

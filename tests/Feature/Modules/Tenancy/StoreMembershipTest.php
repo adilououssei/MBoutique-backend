@@ -17,89 +17,89 @@ class StoreMembershipTest extends TestCase
     {
         $owner = User::factory()->create();
         Sanctum::actingAs($owner);
-        $businessId = $this->postJson('/api/businesses', ['name' => 'Boutique'])->json('data.id');
-        $storeId = $this->postJson("/api/businesses/{$businessId}/stores", [
-            'name' => 'Riz & Co',
-            'business_domain_id' => BusinessDomain::factory()->create()->id,
-        ])->json('data.id');
+        $businessId = $this->postJson('/api/entreprises', ['nom' => 'Boutique'])->json('donnees.id');
+        $storeId = $this->postJson("/api/entreprises/{$businessId}/boutiques", [
+            'nom' => 'Riz & Co',
+            'domaine_activite_id' => BusinessDomain::factory()->create()->id,
+        ])->json('donnees.id');
 
-        return ['owner' => $owner, 'storeId' => $storeId];
+        return ['proprietaire' => $owner, 'storeId' => $storeId];
     }
 
     public function test_owner_can_add_a_member_with_a_role(): void
     {
-        ['owner' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
+        ['proprietaire' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
         $newMember = User::factory()->create();
 
         Sanctum::actingAs($owner);
-        $response = $this->postJson("/api/stores/{$storeId}/members", [
+        $response = $this->postJson("/api/boutiques/{$storeId}/membres", [
             'email' => $newMember->email,
-            'role' => 'cashier',
+            'role' => 'caissier',
         ]);
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('store_users', [
-            'store_id' => $storeId,
-            'user_id' => $newMember->id,
-            'status' => 'active',
+        $this->assertDatabaseHas('utilisateurs_boutique', [
+            'boutique_id' => $storeId,
+            'utilisateur_id' => $newMember->id,
+            'statut' => 'actif',
         ]);
     }
 
     public function test_owner_can_list_members(): void
     {
-        ['owner' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
+        ['proprietaire' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
         $newMember = User::factory()->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$storeId}/members", ['email' => $newMember->email, 'role' => 'cashier']);
+        $this->postJson("/api/boutiques/{$storeId}/membres", ['email' => $newMember->email, 'role' => 'caissier']);
 
-        $response = $this->getJson("/api/stores/{$storeId}/members");
+        $response = $this->getJson("/api/boutiques/{$storeId}/membres");
 
-        $response->assertStatus(200)->assertJsonCount(2, 'data');
+        $response->assertStatus(200)->assertJsonCount(2, 'donnees');
     }
 
     public function test_a_cashier_cannot_add_members(): void
     {
-        ['owner' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
+        ['proprietaire' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
         $cashier = User::factory()->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$storeId}/members", ['email' => $cashier->email, 'role' => 'cashier']);
+        $this->postJson("/api/boutiques/{$storeId}/membres", ['email' => $cashier->email, 'role' => 'caissier']);
 
         $intruder = User::factory()->create();
         Sanctum::actingAs($cashier);
-        $response = $this->postJson("/api/stores/{$storeId}/members", ['email' => $intruder->email, 'role' => 'employee']);
+        $response = $this->postJson("/api/boutiques/{$storeId}/membres", ['email' => $intruder->email, 'role' => 'employe']);
 
-        $response->assertStatus(403);
+        $response->assertStatus(403)->assertJsonPath('code', 'ACCES_INTERDIT');
     }
 
     public function test_a_cashier_can_still_view_members(): void
     {
-        ['owner' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
+        ['proprietaire' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
         $cashier = User::factory()->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$storeId}/members", ['email' => $cashier->email, 'role' => 'cashier']);
+        $this->postJson("/api/boutiques/{$storeId}/membres", ['email' => $cashier->email, 'role' => 'caissier']);
 
         Sanctum::actingAs($cashier);
-        $this->getJson("/api/stores/{$storeId}/members")->assertStatus(200);
+        $this->getJson("/api/boutiques/{$storeId}/membres")->assertStatus(200);
     }
 
     public function test_owner_can_revoke_a_member(): void
     {
-        ['owner' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
+        ['proprietaire' => $owner, 'storeId' => $storeId] = $this->createOwnerAndStore();
         $member = User::factory()->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$storeId}/members", ['email' => $member->email, 'role' => 'cashier']);
+        $this->postJson("/api/boutiques/{$storeId}/membres", ['email' => $member->email, 'role' => 'caissier']);
 
-        $response = $this->deleteJson("/api/stores/{$storeId}/members/{$member->id}");
+        $response = $this->deleteJson("/api/boutiques/{$storeId}/membres/{$member->id}");
         $response->assertStatus(200);
 
-        $this->assertDatabaseHas('store_users', [
-            'store_id' => $storeId,
-            'user_id' => $member->id,
-            'status' => 'revoked',
+        $this->assertDatabaseHas('utilisateurs_boutique', [
+            'boutique_id' => $storeId,
+            'utilisateur_id' => $member->id,
+            'statut' => 'revoque',
         ]);
 
         // The revoked member no longer has any access at all.
         Sanctum::actingAs($member);
-        $this->getJson("/api/stores/{$storeId}")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$storeId}")->assertStatus(404);
     }
 }

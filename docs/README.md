@@ -28,7 +28,7 @@ Ce dossier contient la conception technique du backend MaBoutique et son état d
 ## Ce qui a déjà été mis en place dans le code
 
 **Phase 0 — fondations**
-- Projet Laravel 13, API-only, Sanctum, spatie/laravel-permission en mode **teams** (`team_foreign_key = store_id`).
+- Projet Laravel 13, API-only, Sanctum, spatie/laravel-permission en mode **teams** (`team_foreign_key = boutique_id`).
 - `app/Shared/Tenancy/` : `TenantContext`, `StoreTeamResolver`, trait `BelongsToStore`.
 - `app/Shared/Http/` : `ApiController`, `ApiResponse` (enveloppe JSON standard).
 - `app/Modules/*` : squelette des 17 modules avec README.
@@ -40,18 +40,18 @@ Ce dossier contient la conception technique du backend MaBoutique et son état d
 - Module `Tenancy` : `Business`, `BusinessUser`, `Store`, `StoreUser`, middleware `ResolveStoreContext`, policies, services transactionnels — voir [stores.md](stores.md).
 - Module `Authorization` : `StoreRoleProvisioner` (rôles spatie par store), `Permissions`/`StoreRole` (constantes) — voir [permissions.md](permissions.md).
 - `App\Shared\Validation\TenantScopedRules` : mécanisme de validation scopée (Couche 5), prêt pour les modules métier.
-- Deux bugs critiques trouvés en implémentant et corrigés immédiatement : `StoreTeamResolver` incompatible avec l'instanciation sans conteneur de spatie, et mass assignment silencieux des clés étrangères serveur (`owner_user_id`, `business_id`) — détail dans [stores.md](stores.md).
+- Deux bugs critiques trouvés en implémentant et corrigés immédiatement : `StoreTeamResolver` incompatible avec l'instanciation sans conteneur de spatie, et mass assignment silencieux des clés étrangères serveur (`proprietaire_id`, `entreprise_id`) — détail dans [stores.md](stores.md).
 
 **Phase 2 — domaines et features (terminée, 76 tests verts)**
-- Module `Features` : `BusinessDomain`, `Feature`, `DomainFeature`, `FeatureDependency`, `StoreFeatureOverride` (tenant-scopé), service `FeatureGate`, middleware `feature:*`, endpoint `GET /stores/{store}/features` — voir [feature-gate.md](feature-gate.md).
+- Module `Features` : `BusinessDomain`, `Feature`, `DomainFeature`, `FeatureDependency`, `StoreFeatureOverride` (tenant-scopé), service `FeatureGate`, middleware `feature:*`, endpoint `GET /boutiques/{store}/fonctionnalites` — voir [feature-gate.md](feature-gate.md).
 - Module `Subscriptions` (version minimale) : `Plan`, `Subscription`, `SubscriptionLimits::assertCanCreateStore()` branché sur la création de boutique.
-- `Store.business_domain_id` (colonne réelle, `NOT NULL`), domaines/features seedés (`FeatureSeeder`, 11 domaines / 13 features).
-- Un bug mineur trouvé et corrigé : `is_active` absent de `$fillable` sur `BusinessDomain`/`Feature`.
+- `Store.domaine_activite_id` (colonne réelle, `NOT NULL`), domaines/features seedés (`FeatureSeeder`, 11 domaines / 13 features).
+- Un bug mineur trouvé et corrigé : `actif` absent de `$fillable` sur `BusinessDomain`/`Feature`.
 
 **Phase 3 — Catalog (terminée, 108 tests verts)**
-- Module `Catalog` : `Category` (partagée Product/Service), `Product`, `Service`, contrat `Sellable` (`app/Shared/Contracts/`), morph map `product`/`service` — voir [catalog.md](catalog.md).
+- Module `Catalog` : `Category` (partagée Product/Service), `Product`, `Service`, contrat `Sellable` (`app/Shared/Contracts/`), morph map `produit`/`service` — voir [catalog.md](catalog.md).
 - Premiers consommateurs réels de `TenantScopedRules::existsInCurrentStore()` (Phase 1) et des scoped route bindings `Route::scopeBindings()` (Couche 6 de l'audit), jusque-là construits/documentés sans endpoint pour les exercer.
-- Permissions `categories.*`/`products.*`/`services.*` ajoutées aux rôles templates existants.
+- Permissions `categories.*`/`produits.*`/`services.*` ajoutées aux rôles templates existants.
 - Un bug critique trouvé et corrigé : `Relation::enforceMorphMap()` (strict) cassait le morph `tokenable` de Sanctum — remplacé par `morphMap()` (non strict).
 
 `Customers` (prévu à l'origine dans la même phase de roadmap) n'a volontairement pas été traité — le périmètre demandé était Catalog seul.

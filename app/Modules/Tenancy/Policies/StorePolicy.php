@@ -21,12 +21,12 @@ class StorePolicy
 
     public function viewMembers(User $user, Store $store): bool
     {
-        return $this->isActiveMember($user, $store) && $user->can('store_users.view');
+        return $this->isActiveMember($user, $store) && $user->can('membres.voir');
     }
 
     public function manageMembers(User $user, Store $store): bool
     {
-        return $this->isActiveMember($user, $store) && $user->can('store_users.manage');
+        return $this->isActiveMember($user, $store) && $user->can('membres.gerer');
     }
 
     private function isActiveMember(User $user, Store $store): bool
@@ -36,8 +36,8 @@ class StorePolicy
         // filter makes the query fail closed (no match) instead of masking
         // the inconsistency.
         return $store->storeUsers()
-            ->where('user_id', $user->id)
-            ->where('status', StoreUserStatus::Active->value)
+            ->where('utilisateur_id', $user->id)
+            ->where('statut', StoreUserStatus::Active->value)
             ->exists();
     }
 }

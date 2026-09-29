@@ -21,15 +21,15 @@ class ProductImportTest extends TestCase
     use CreatesStoresWithFeatures, RefreshDatabase;
 
     private const HEADINGS = [
-        'name', 'category', 'description', 'sku', 'barcode', 'unit',
-        'purchase_price', 'retail_enabled', 'retail_price',
-        'wholesale_enabled', 'wholesale_price', 'is_active',
+        'nom', 'categorie', 'description', 'sku', 'code_barres', 'unite',
+        'prix_achat', 'vente_detail_active', 'prix_detail',
+        'vente_gros_active', 'prix_gros', 'actif',
     ];
 
     public function test_owner_can_import_valid_products(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'categories']);
-        Category::factory()->for($store)->create(['name' => 'Boissons']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'categories']);
+        Category::factory()->for($store)->create(['nom' => 'Boissons']);
         Sanctum::actingAs($owner);
 
         $file = $this->xlsx([
@@ -37,21 +37,21 @@ class ProductImportTest extends TestCase
             ['Fanta 50cl', 'Boissons', '', 'CC002', '987654321', 'piece', 280, 'true', 480, 'false', '', 'true'],
         ]);
 
-        $response = $this->postJson("/api/stores/{$store->id}/products/import", ['file' => $file]);
+        $response = $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.total_rows', 2)
-            ->assertJsonPath('data.imported', 2)
-            ->assertJsonPath('data.rejected', 0);
+            ->assertJsonPath('donnees.total_lignes', 2)
+            ->assertJsonPath('donnees.importes', 2)
+            ->assertJsonPath('donnees.rejetes', 0);
 
-        $this->assertDatabaseHas('products', ['store_id' => $store->id, 'sku' => 'CC001', 'retail_price' => 500]);
-        $this->assertDatabaseHas('products', ['store_id' => $store->id, 'sku' => 'CC002', 'wholesale_price' => null]);
+        $this->assertDatabaseHas('produits', ['boutique_id' => $store->id, 'sku' => 'CC001', 'prix_detail' => 500]);
+        $this->assertDatabaseHas('produits', ['boutique_id' => $store->id, 'sku' => 'CC002', 'prix_gros' => null]);
     }
 
     public function test_import_partially_succeeds_and_reports_rejected_lines(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'categories']);
-        Category::factory()->for($store)->create(['name' => 'Boissons']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'categories']);
+        Category::factory()->for($store)->create(['nom' => 'Boissons']);
         Sanctum::actingAs($owner);
 
         $file = $this->xlsx([
@@ -63,28 +63,28 @@ class ProductImportTest extends TestCase
             ['Ice Tea 50cl', 'Boissons', '', 'CC004', '444', 'piece', 300, 'true', '', '', '', 'true'],
         ]);
 
-        $response = $this->postJson("/api/stores/{$store->id}/products/import", ['file' => $file]);
+        $response = $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.total_rows', 3)
-            ->assertJsonPath('data.imported', 1)
-            ->assertJsonPath('data.rejected', 2);
+            ->assertJsonPath('donnees.total_lignes', 3)
+            ->assertJsonPath('donnees.importes', 1)
+            ->assertJsonPath('donnees.rejetes', 2);
 
-        $errors = $response->json('data.errors');
+        $errors = $response->json('donnees.erreurs');
         $this->assertCount(2, $errors);
-        $this->assertSame(3, $errors[0]['line']); // header = line 1, first data row = line 2
-        $this->assertArrayHasKey('category', $errors[0]['errors']);
-        $this->assertSame(4, $errors[1]['line']);
-        $this->assertArrayHasKey('retail_price', $errors[1]['errors']);
+        $this->assertSame(3, $errors[0]['ligne']); // header = line 1, first data row = line 2
+        $this->assertArrayHasKey('categorie', $errors[0]['erreurs']);
+        $this->assertSame(4, $errors[1]['ligne']);
+        $this->assertArrayHasKey('prix_detail', $errors[1]['erreurs']);
 
-        $this->assertDatabaseHas('products', ['store_id' => $store->id, 'sku' => 'CC001']);
-        $this->assertDatabaseMissing('products', ['sku' => 'CC003']);
-        $this->assertDatabaseMissing('products', ['sku' => 'CC004']);
+        $this->assertDatabaseHas('produits', ['boutique_id' => $store->id, 'sku' => 'CC001']);
+        $this->assertDatabaseMissing('produits', ['sku' => 'CC003']);
+        $this->assertDatabaseMissing('produits', ['sku' => 'CC004']);
     }
 
     public function test_import_rejects_a_duplicate_sku_within_the_same_file(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
         Sanctum::actingAs($owner);
 
         $file = $this->xlsx([
@@ -92,74 +92,74 @@ class ProductImportTest extends TestCase
             ['Article B', '', '', 'SKU-1', '', 'piece', '', 'true', 100, '', '', 'true'],
         ]);
 
-        $response = $this->postJson("/api/stores/{$store->id}/products/import", ['file' => $file]);
+        $response = $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.imported', 1)
-            ->assertJsonPath('data.rejected', 1);
+            ->assertJsonPath('donnees.importes', 1)
+            ->assertJsonPath('donnees.rejetes', 1);
 
-        $this->assertSame(1, Product::where('store_id', $store->id)->where('sku', 'SKU-1')->count());
+        $this->assertSame(1, Product::where('boutique_id', $store->id)->where('sku', 'SKU-1')->count());
     }
 
     public function test_import_is_scoped_to_the_current_store(): void
     {
-        ['owner' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['products']);
-        ['store' => $storeB] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['produits']);
+        ['store' => $storeB] = $this->createStoreWithFeatures(['produits']);
         Sanctum::actingAs($ownerA);
 
         $file = $this->xlsx([
             ['Article A', '', '', '', '', 'piece', '', 'true', 100, '', '', 'true'],
         ]);
 
-        $this->postJson("/api/stores/{$storeA->id}/products/import", ['file' => $file])->assertStatus(200);
+        $this->postJson("/api/boutiques/{$storeA->id}/produits/importer", ['fichier' => $file])->assertStatus(200);
 
-        $this->assertSame(1, Product::where('store_id', $storeA->id)->count());
-        $this->assertSame(0, Product::where('store_id', $storeB->id)->count());
+        $this->assertSame(1, Product::where('boutique_id', $storeA->id)->count());
+        $this->assertSame(0, Product::where('boutique_id', $storeB->id)->count());
     }
 
     public function test_import_requires_the_products_import_permission(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
         $employee = User::factory()->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/members", ['email' => $employee->email, 'role' => 'employee'])
+        $this->postJson("/api/boutiques/{$store->id}/membres", ['email' => $employee->email, 'role' => 'employe'])
             ->assertStatus(201);
 
         Sanctum::actingAs($employee);
 
         $file = $this->xlsx([['Article A', '', '', '', '', 'piece', '', 'true', 100, '', '', 'true']]);
 
-        $this->postJson("/api/stores/{$store->id}/products/import", ['file' => $file])->assertStatus(403);
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file])->assertStatus(403);
     }
 
     public function test_import_rejects_a_non_excel_file(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
         Sanctum::actingAs($owner);
 
-        $file = UploadedFile::fake()->create('products.pdf', 10, 'application/pdf');
+        $file = UploadedFile::fake()->create('produits.pdf', 10, 'application/pdf');
 
-        $this->postJson("/api/stores/{$store->id}/products/import", ['file' => $file])
-            ->assertStatus(422)->assertJsonValidationErrors('file');
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file])
+            ->assertStatus(422)->assertJsonValidationErrors('fichier', 'erreurs');
     }
 
     public function test_import_rejects_a_file_that_is_too_large(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
         Sanctum::actingAs($owner);
 
-        $file = UploadedFile::fake()->create('products.xlsx', 6000);
+        $file = UploadedFile::fake()->create('produits.xlsx', 6000);
 
-        $this->postJson("/api/stores/{$store->id}/products/import", ['file' => $file])
-            ->assertStatus(422)->assertJsonValidationErrors('file');
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file])
+            ->assertStatus(422)->assertJsonValidationErrors('fichier', 'erreurs');
     }
 
     public function test_the_import_template_can_be_downloaded(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
         Sanctum::actingAs($owner);
 
-        $response = $this->get("/api/stores/{$store->id}/products/import/template");
+        $response = $this->get("/api/boutiques/{$store->id}/produits/importer/modele");
 
         $response->assertStatus(200);
         $this->assertSame(
@@ -189,6 +189,6 @@ class ProductImportTest extends TestCase
 
         $binary = Excel::raw($export, ExcelFormat::XLSX);
 
-        return UploadedFile::fake()->createWithContent('products.xlsx', $binary);
+        return UploadedFile::fake()->createWithContent('produits.xlsx', $binary);
     }
 }

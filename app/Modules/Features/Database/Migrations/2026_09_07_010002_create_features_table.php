@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('features', function (Blueprint $table) {
+        Schema::create('fonctionnalites', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('nom');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('actif')->default(true);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('features');
+        Schema::dropIfExists('fonctionnalites');
     }
 };

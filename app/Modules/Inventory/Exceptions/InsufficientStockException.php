@@ -15,7 +15,7 @@ class InsufficientStockException extends RuntimeException
     public static function forProduct(Product $product, string $available, string $requested): self
     {
         return new self(
-            "Stock insuffisant pour \"{$product->name}\" : disponible {$available}, demandé {$requested}."
+            "Stock insuffisant pour \"{$product->nom}\" : disponible {$available}, demandé {$requested}."
         );
     }
 }

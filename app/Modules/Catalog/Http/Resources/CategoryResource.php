@@ -15,12 +15,12 @@ class CategoryResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'nom' => $this->nom,
             'slug' => $this->slug,
             'description' => $this->description,
-            'is_active' => $this->is_active,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'actif' => $this->actif,
+            'cree_le' => $this->created_at,
+            'modifie_le' => $this->updated_at,
         ];
     }
 }

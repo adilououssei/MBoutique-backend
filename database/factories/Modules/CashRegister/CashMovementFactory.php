@@ -20,14 +20,14 @@ class CashMovementFactory extends Factory
         $amount = fake()->randomFloat(2, 1000, 20000);
 
         return [
-            'store_id' => Store::factory(),
-            'cash_register_session_id' => CashRegisterSession::factory(),
+            'boutique_id' => Store::factory(),
+            'session_caisse_id' => CashRegisterSession::factory(),
             'type' => CashMovementType::CashIn,
-            'amount' => $amount,
-            'balance_before' => 0,
-            'balance_after' => $amount,
-            'reason' => null,
-            'created_by_user_id' => null,
+            'montant' => $amount,
+            'solde_avant' => 0,
+            'solde_apres' => $amount,
+            'motif' => null,
+            'cree_par_id' => null,
         ];
     }
 }

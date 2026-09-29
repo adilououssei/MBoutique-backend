@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('business_users', function (Blueprint $table) {
+        Schema::create('utilisateurs_entreprise', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->foreignId('entreprise_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('utilisateur_id')->constrained()->restrictOnDelete();
             $table->string('role');
             $table->timestamps();
 
-            $table->unique(['business_id', 'user_id']);
+            $table->unique(['entreprise_id', 'utilisateur_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('business_users');
+        Schema::dropIfExists('utilisateurs_entreprise');
     }
 };

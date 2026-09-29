@@ -15,7 +15,7 @@ class BusinessController extends ApiController
 
     public function index(Request $request)
     {
-        $businesses = Business::whereHas('businessUsers', fn ($q) => $q->where('user_id', $request->user()->id))->get();
+        $businesses = Business::whereHas('businessUsers', fn ($q) => $q->where('utilisateur_id', $request->user()->id))->get();
 
         return $this->success(BusinessResource::collection($businesses));
     }

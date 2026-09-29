@@ -15,19 +15,19 @@ class CashRegisterSessionResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'status' => $this->status->value,
-            'opening_amount' => $this->opening_amount,
+            'statut' => $this->statut->value,
+            'montant_ouverture' => $this->montant_ouverture,
             // Only meaningful while open — once closed, actual/expected/
             // difference already fully describe the final state.
-            'current_balance' => $this->isOpen() ? $this->movements()->latest('id')->value('balance_after') : null,
-            'expected_closing_amount' => $this->expected_closing_amount,
-            'actual_closing_amount' => $this->actual_closing_amount,
-            'difference' => $this->difference,
-            'closing_note' => $this->closing_note,
-            'opened_by' => $this->whenLoaded('openedBy', fn () => $this->openedBy ? ['id' => $this->openedBy->id, 'name' => $this->openedBy->name] : null),
-            'closed_by' => $this->whenLoaded('closedBy', fn () => $this->closedBy ? ['id' => $this->closedBy->id, 'name' => $this->closedBy->name] : null),
-            'opened_at' => $this->opened_at,
-            'closed_at' => $this->closed_at,
+            'solde_courant' => $this->isOpen() ? $this->movements()->latest('id')->value('solde_apres') : null,
+            'montant_fermeture_attendu' => $this->montant_fermeture_attendu,
+            'montant_fermeture_reel' => $this->montant_fermeture_reel,
+            'ecart' => $this->ecart,
+            'note_fermeture' => $this->note_fermeture,
+            'ouverte_par' => $this->whenLoaded('openedBy', fn () => $this->openedBy ? ['id' => $this->openedBy->id, 'nom' => $this->openedBy->nom] : null),
+            'fermee_par' => $this->whenLoaded('closedBy', fn () => $this->closedBy ? ['id' => $this->closedBy->id, 'nom' => $this->closedBy->nom] : null),
+            'ouverte_le' => $this->ouverte_le,
+            'fermee_le' => $this->fermee_le,
         ];
     }
 }

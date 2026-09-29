@@ -26,10 +26,10 @@ class CashMovementController extends ApiController
         $this->authorize('viewAny', [CashMovement::class, $store]);
 
         $movements = CashMovement::query()
-            ->where('cash_register_session_id', $session->id)
+            ->where('session_caisse_id', $session->id)
             ->with('createdBy')
             ->latest('id')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(CashMovementResource::collection($movements));
     }
@@ -39,7 +39,7 @@ class CashMovementController extends ApiController
         $this->authorize('create', [CashMovement::class, $store]);
 
         return $this->record(fn () => $this->cashRegisters->cashIn(
-            $session, (string) $request->input('amount'), $request->user()?->id, $request->input('reason'),
+            $session, (string) $request->input('montant'), $request->user()?->id, $request->input('motif'),
         ));
     }
 
@@ -48,7 +48,7 @@ class CashMovementController extends ApiController
         $this->authorize('create', [CashMovement::class, $store]);
 
         return $this->record(fn () => $this->cashRegisters->cashOut(
-            $session, (string) $request->input('amount'), $request->user()?->id, $request->input('reason'),
+            $session, (string) $request->input('montant'), $request->user()?->id, $request->input('motif'),
         ));
     }
 
@@ -57,7 +57,7 @@ class CashMovementController extends ApiController
         $this->authorize('create', [CashMovement::class, $store]);
 
         return $this->record(fn () => $this->cashRegisters->adjust(
-            $session, (string) $request->input('amount'), $request->user()?->id, (string) $request->input('reason'),
+            $session, (string) $request->input('montant'), $request->user()?->id, (string) $request->input('motif'),
         ));
     }
 
@@ -66,9 +66,9 @@ class CashMovementController extends ApiController
         try {
             $movement = $operation();
         } catch (CashRegisterSessionClosedException $e) {
-            return $this->error($e->getMessage(), [], 422, 'CASH_REGISTER_SESSION_CLOSED');
+            return $this->error($e->getMessage(), [], 422, 'SESSION_CAISSE_FERMEE');
         } catch (InsufficientCashException $e) {
-            return $this->error($e->getMessage(), [], 422, 'INSUFFICIENT_CASH');
+            return $this->error($e->getMessage(), [], 422, 'SOLDE_CAISSE_INSUFFISANT');
         }
 
         return $this->success(new CashMovementResource($movement), 'Mouvement de caisse enregistré.', [], 201);

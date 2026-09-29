@@ -21,15 +21,15 @@ class StockMovementFactory extends Factory
         $quantity = fake()->randomFloat(3, 1, 50);
 
         return [
-            'store_id' => Store::factory(),
+            'boutique_id' => Store::factory(),
             'stock_id' => Stock::factory(),
-            'product_id' => Product::factory(),
+            'produit_id' => Product::factory(),
             'type' => StockMovementType::Purchase,
-            'quantity' => $quantity,
-            'quantity_before' => 0,
-            'quantity_after' => $quantity,
-            'reason' => null,
-            'created_by_user_id' => null,
+            'quantite' => $quantity,
+            'quantite_avant' => 0,
+            'quantite_apres' => $quantity,
+            'motif' => null,
+            'cree_par_id' => null,
         ];
     }
 }

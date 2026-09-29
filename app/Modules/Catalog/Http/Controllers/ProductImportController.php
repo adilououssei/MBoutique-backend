@@ -20,18 +20,18 @@ class ProductImportController extends ApiController
         $this->authorize('import', [Product::class, $store]);
 
         try {
-            $report = $this->imports->import($request->file('file'), $store);
+            $report = $this->imports->import($request->file('fichier'), $store);
         } catch (ProductImportRejectedException $e) {
-            return $this->error($e->getMessage(), [], 422, 'PRODUCT_IMPORT_REJECTED');
+            return $this->error($e->getMessage(), [], 422, 'IMPORT_PRODUITS_REJETE');
         }
 
-        return $this->success($report, "{$report['imported']} produit(s) importé(s), {$report['rejected']} rejeté(s).");
+        return $this->success($report, "{$report['importes']} produit(s) importé(s), {$report['rejetes']} rejeté(s).");
     }
 
     public function template(Store $store)
     {
         $this->authorize('import', [Product::class, $store]);
 
-        return Excel::download(new ProductImportTemplateExport, 'products-import-template.xlsx');
+        return Excel::download(new ProductImportTemplateExport, 'modele-import-produits.xlsx');
     }
 }

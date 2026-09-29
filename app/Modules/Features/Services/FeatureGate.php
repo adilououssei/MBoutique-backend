@@ -18,15 +18,15 @@ use Illuminate\Support\Collection;
  * Resolution order (documented in detail in docs/feature-gate.md, decided
  * during Phase 2 where the design docs left it ambiguous):
  *
- *   1. Feature must exist and be globally active (Feature.is_active).
+ *   1. Feature must exist and be globally active (Feature.actif).
  *   2. Subscription/Plan gate: if the Business's Plan lists ANY features,
  *      this one must be among them (an empty list = no plan restriction).
  *   3. Store's own word: StoreFeatureOverride if one exists, otherwise
- *      the BusinessDomain's default (DomainFeature.is_default_enabled),
+ *      the BusinessDomain's default (DomainFeature.active_par_defaut),
  *      otherwise false (fail closed).
  *   4. Every dependency (FeatureDependency) must ALSO resolve to true.
  *
- * BusinessDomain.is_active is deliberately NOT part of this runtime
+ * BusinessDomain.actif is deliberately NOT part of this runtime
  * check — see docs/feature-gate.md for why (it only gates domain
  * selection when a Store is created/changed, so deactivating a domain
  * later never silently breaks stores already using it).
@@ -43,19 +43,19 @@ class FeatureGate
      */
     public function resolveForStore(Store $store): Collection
     {
-        $features = Feature::where('is_active', true)->get()->keyBy('id');
+        $features = Feature::where('actif', true)->get()->keyBy('id');
 
-        $domainFeatures = DomainFeature::where('business_domain_id', $store->business_domain_id)
+        $domainFeatures = DomainFeature::where('domaine_activite_id', $store->domaine_activite_id)
             ->get()
-            ->keyBy('feature_id');
+            ->keyBy('fonctionnalite_id');
 
-        $overrides = StoreFeatureOverride::where('store_id', $store->id)
+        $overrides = StoreFeatureOverride::where('boutique_id', $store->id)
             ->get()
-            ->keyBy('feature_id');
+            ->keyBy('fonctionnalite_id');
 
-        $dependencies = FeatureDependency::whereIn('feature_id', $features->keys())
+        $dependencies = FeatureDependency::whereIn('fonctionnalite_id', $features->keys())
             ->get()
-            ->groupBy('feature_id');
+            ->groupBy('fonctionnalite_id');
 
         $planFeatureIds = $this->planFeatureIds($store);
 
@@ -84,15 +84,15 @@ class FeatureGate
 
             $override = $overrides->get($featureId);
             $base = $override !== null
-                ? $override->is_enabled
-                : (bool) ($domainFeatures->get($featureId)?->is_default_enabled ?? false);
+                ? $override->activee
+                : (bool) ($domainFeatures->get($featureId)?->active_par_defaut ?? false);
 
             if (! $base) {
                 return $resolved[$featureId] = false;
             }
 
             foreach ($dependencies->get($featureId, collect()) as $dependency) {
-                if (! $resolve($dependency->depends_on_feature_id)) {
+                if (! $resolve($dependency->depend_de_fonctionnalite_id)) {
                     return $resolved[$featureId] = false;
                 }
             }
@@ -114,7 +114,7 @@ class FeatureGate
             return null;
         }
 
-        $planFeatureIds = $subscription->plan->features()->pluck('features.id')->all();
+        $planFeatureIds = $subscription->plan->features()->pluck('fonctionnalites.id')->all();
 
         return $planFeatureIds === [] ? null : $planFeatureIds;
     }

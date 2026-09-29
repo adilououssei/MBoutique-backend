@@ -9,11 +9,11 @@ namespace App\Modules\Sales\Enums;
  */
 enum PaymentMethod: string
 {
-    case Cash = 'cash';
+    case Cash = 'especes';
     case MobileMoney = 'mobile_money';
-    case Card = 'card';
-    case BankTransfer = 'bank_transfer';
-    case Mixed = 'mixed';
+    case Card = 'carte';
+    case BankTransfer = 'virement';
+    case Mixed = 'mixte';
 
     /** @return array<int, self> */
     public static function acceptedForCheckout(): array

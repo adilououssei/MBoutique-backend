@@ -17,14 +17,14 @@ class StoreTest extends TestCase
     {
         Sanctum::actingAs($user);
 
-        return $this->postJson('/api/businesses', ['name' => 'Boutique Aïcha'])->json('data.id');
+        return $this->postJson('/api/entreprises', ['nom' => 'Boutique Aïcha'])->json('donnees.id');
     }
 
     private function createStore(int $businessId, string $name = 'Riz & Co', ?int $domainId = null)
     {
-        return $this->postJson("/api/businesses/{$businessId}/stores", [
-            'name' => $name,
-            'business_domain_id' => $domainId ?? BusinessDomain::factory()->create()->id,
+        return $this->postJson("/api/entreprises/{$businessId}/boutiques", [
+            'nom' => $name,
+            'domaine_activite_id' => $domainId ?? BusinessDomain::factory()->create()->id,
         ]);
     }
 
@@ -36,13 +36,13 @@ class StoreTest extends TestCase
         $response = $this->createStore($businessId, 'Riz & Co');
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.name', 'Riz & Co')
-            ->assertJsonStructure(['data' => ['business_domain' => ['slug', 'name']]]);
+            ->assertJsonPath('donnees.nom', 'Riz & Co')
+            ->assertJsonStructure(['donnees' => ['domaine_activite' => ['slug', 'nom']]]);
 
-        $this->assertDatabaseHas('store_users', [
-            'store_id' => $response->json('data.id'),
-            'user_id' => $owner->id,
-            'status' => 'active',
+        $this->assertDatabaseHas('utilisateurs_boutique', [
+            'boutique_id' => $response->json('donnees.id'),
+            'utilisateur_id' => $owner->id,
+            'statut' => 'actif',
         ]);
     }
 
@@ -51,9 +51,9 @@ class StoreTest extends TestCase
         $owner = User::factory()->create();
         $businessId = $this->createBusiness($owner);
 
-        $this->postJson("/api/businesses/{$businessId}/stores", ['name' => 'Riz & Co'])
+        $this->postJson("/api/entreprises/{$businessId}/boutiques", ['nom' => 'Riz & Co'])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('business_domain_id');
+            ->assertJsonValidationErrors('domaine_activite_id', 'erreurs');
     }
 
     public function test_creating_a_store_with_an_inactive_domain_is_rejected(): void
@@ -64,21 +64,21 @@ class StoreTest extends TestCase
 
         $this->createStore($businessId, 'Riz & Co', $inactiveDomain->id)
             ->assertStatus(422)
-            ->assertJsonValidationErrors('business_domain_id');
+            ->assertJsonValidationErrors('domaine_activite_id', 'erreurs');
     }
 
     public function test_creating_a_store_grants_the_owner_role_immediately(): void
     {
         $owner = User::factory()->create();
         $businessId = $this->createBusiness($owner);
-        $storeId = $this->createStore($businessId)->json('data.id');
+        $storeId = $this->createStore($businessId)->json('donnees.id');
 
         // hasRole() is team-scoped: outside of a request scoped to this
         // store by the 'store' middleware, TenantContext must be pointed
         // at it manually before checking — see docs/permissions.md §5 bis.
         app(TenantContextContract::class)->setStoreId($storeId);
 
-        $this->assertTrue($owner->fresh()->hasRole('owner'));
+        $this->assertTrue($owner->fresh()->hasRole('proprietaire'));
     }
 
     public function test_a_user_with_no_business_membership_cannot_create_a_store(): void
@@ -101,30 +101,30 @@ class StoreTest extends TestCase
         $this->createStore($businessId, 'Store 2');
 
         Sanctum::actingAs($owner);
-        $response = $this->getJson('/api/stores');
+        $response = $this->getJson('/api/boutiques');
 
-        $response->assertStatus(200)->assertJsonCount(2, 'data');
+        $response->assertStatus(200)->assertJsonCount(2, 'donnees');
     }
 
     public function test_a_second_business_user_gets_immediate_access_to_existing_stores(): void
     {
         $owner = User::factory()->create();
         $businessId = $this->createBusiness($owner);
-        $storeId = $this->createStore($businessId)->json('data.id');
+        $storeId = $this->createStore($businessId)->json('donnees.id');
 
         $admin = User::factory()->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/businesses/{$businessId}/users", [
+        $this->postJson("/api/entreprises/{$businessId}/utilisateurs", [
             'email' => $admin->email,
-            'role' => 'admin',
+            'role' => 'administrateur',
         ])->assertStatus(201);
 
         Sanctum::actingAs($admin);
-        $response = $this->getJson('/api/stores');
+        $response = $this->getJson('/api/boutiques');
 
-        $response->assertStatus(200)->assertJsonCount(1, 'data');
+        $response->assertStatus(200)->assertJsonCount(1, 'donnees');
 
         app(TenantContextContract::class)->setStoreId($storeId);
-        $this->assertTrue($admin->fresh()->hasRole('admin'));
+        $this->assertTrue($admin->fresh()->hasRole('administrateur'));
     }
 }

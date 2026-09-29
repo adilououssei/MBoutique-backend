@@ -8,35 +8,35 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('cash_register_sessions', function (Blueprint $table) {
+        Schema::create('sessions_caisse', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
             // restrictOnDelete: a register with session history is never
             // hard-deleted (docs/cash-register.md §"Caisse inactive"),
             // deactivated via is_active instead.
-            $table->foreignId('cash_register_id')->constrained()->restrictOnDelete();
+            $table->foreignId('caisse_id')->constrained()->restrictOnDelete();
             // Preserve the audit trail even if the acting user's account
             // is later removed — same reasoning as StockMovement.created_by_user_id.
-            $table->foreignId('opened_by_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('closed_by_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('opened_at');
-            $table->timestamp('closed_at')->nullable();
-            $table->decimal('opening_amount', 12, 2);
+            $table->foreignId('ouverte_par_id')->nullable()->constrained('utilisateurs')->nullOnDelete();
+            $table->foreignId('fermee_par_id')->nullable()->constrained('utilisateurs')->nullOnDelete();
+            $table->timestamp('ouverte_le');
+            $table->timestamp('fermee_le')->nullable();
+            $table->decimal('montant_ouverture', 12, 2);
             // Computed by the backend at close time from the ledger,
             // never accepted from the client — see docs/cash-register.md §"Expected closing amount".
-            $table->decimal('expected_closing_amount', 12, 2)->nullable();
-            $table->decimal('actual_closing_amount', 12, 2)->nullable();
-            $table->decimal('difference', 12, 2)->nullable();
-            $table->string('status');
-            $table->text('closing_note')->nullable();
+            $table->decimal('montant_fermeture_attendu', 12, 2)->nullable();
+            $table->decimal('montant_fermeture_reel', 12, 2)->nullable();
+            $table->decimal('ecart', 12, 2)->nullable();
+            $table->string('statut');
+            $table->text('note_fermeture')->nullable();
             $table->timestamps();
 
-            $table->index(['cash_register_id', 'status']);
+            $table->index(['caisse_id', 'statut']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('cash_register_sessions');
+        Schema::dropIfExists('sessions_caisse');
     }
 };

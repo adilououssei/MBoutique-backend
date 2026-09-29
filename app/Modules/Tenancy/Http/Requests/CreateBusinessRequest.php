@@ -14,11 +14,11 @@ class CreateBusinessRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'legal_name' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:2'],
-            'currency' => ['nullable', 'string', 'size:3'],
-            'timezone' => ['nullable', 'string', 'max:64'],
+            'nom' => ['required', 'string', 'max:255'],
+            'raison_sociale' => ['nullable', 'string', 'max:255'],
+            'pays' => ['nullable', 'string', 'max:2'],
+            'devise' => ['nullable', 'string', 'size:3'],
+            'fuseau_horaire' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

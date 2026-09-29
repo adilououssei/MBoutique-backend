@@ -16,26 +16,26 @@ class CategoryPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('categories.view');
+        return $user->can('categories.voir');
     }
 
     public function view(User $user, Category $category, Store $store): bool
     {
-        return $category->store_id === $store->id && $user->can('categories.view');
+        return $category->boutique_id === $store->id && $user->can('categories.voir');
     }
 
     public function create(User $user, Store $store): bool
     {
-        return $user->can('categories.create');
+        return $user->can('categories.creer');
     }
 
     public function update(User $user, Category $category, Store $store): bool
     {
-        return $category->store_id === $store->id && $user->can('categories.update');
+        return $category->boutique_id === $store->id && $user->can('categories.modifier');
     }
 
     public function delete(User $user, Category $category, Store $store): bool
     {
-        return $category->store_id === $store->id && $user->can('categories.delete');
+        return $category->boutique_id === $store->id && $user->can('categories.supprimer');
     }
 }

@@ -15,124 +15,124 @@ class CashMovementTest extends TestCase
 
     private function openSession(int $storeId, int $registerId, float $opening = 50000): int
     {
-        return $this->postJson("/api/stores/{$storeId}/cash-registers/{$registerId}/sessions", ['opening_amount' => $opening])
-            ->json('data.id');
+        return $this->postJson("/api/boutiques/{$storeId}/caisses/{$registerId}/sessions", ['montant_ouverture' => $opening])
+            ->json('donnees.id');
     }
 
     public function test_cash_in_increases_the_balance(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id);
 
-        $response = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-in", [
-            'amount' => 20000, 'reason' => 'Fond supplémentaire',
+        $response = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/entree", [
+            'montant' => 20000, 'motif' => 'Fond supplémentaire',
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.type', 'cash_in')
-            ->assertJsonPath('data.amount', '20000.00')
-            ->assertJsonPath('data.balance_before', '50000.00')
-            ->assertJsonPath('data.balance_after', '70000.00');
+            ->assertJsonPath('donnees.type', 'entree')
+            ->assertJsonPath('donnees.montant', '20000.00')
+            ->assertJsonPath('donnees.solde_avant', '50000.00')
+            ->assertJsonPath('donnees.solde_apres', '70000.00');
     }
 
     public function test_cash_out_decreases_the_balance(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id, 70000);
 
-        $response = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-out", [
-            'amount' => 5000, 'reason' => 'Achat de fournitures',
+        $response = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/sortie", [
+            'montant' => 5000, 'motif' => 'Achat de fournitures',
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.amount', '-5000.00')
-            ->assertJsonPath('data.balance_before', '70000.00')
-            ->assertJsonPath('data.balance_after', '65000.00');
+            ->assertJsonPath('donnees.montant', '-5000.00')
+            ->assertJsonPath('donnees.solde_avant', '70000.00')
+            ->assertJsonPath('donnees.solde_apres', '65000.00');
     }
 
     public function test_cash_out_rejects_an_amount_exceeding_the_balance(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id, 5000);
 
-        $response = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-out", ['amount' => 10000]);
+        $response = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/sortie", ['montant' => 10000]);
 
-        $response->assertStatus(422)->assertJsonPath('code', 'INSUFFICIENT_CASH');
-        $this->assertSame(1, CashMovement::where('cash_register_session_id', $sessionId)->count()); // only the opening
+        $response->assertStatus(422)->assertJsonPath('code', 'SOLDE_CAISSE_INSUFFISANT');
+        $this->assertSame(1, CashMovement::where('session_caisse_id', $sessionId)->count()); // only the opening
     }
 
     public function test_an_adjustment_can_be_negative(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id, 100000);
 
-        $response = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/adjust", [
-            'amount' => -500, 'reason' => 'Erreur de comptage',
+        $response = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/ajustement", [
+            'montant' => -500, 'motif' => 'Erreur de comptage',
         ]);
 
-        $response->assertStatus(201)->assertJsonPath('data.balance_after', '99500.00');
+        $response->assertStatus(201)->assertJsonPath('donnees.solde_apres', '99500.00');
     }
 
     public function test_an_adjustment_requires_a_reason(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id);
 
-        $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/adjust", ['amount' => -500])
-            ->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/ajustement", ['montant' => -500])
+            ->assertStatus(422)->assertJsonValidationErrors('motif', 'erreurs');
     }
 
     public function test_an_adjustment_of_zero_is_rejected(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id);
 
-        $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/adjust", ['amount' => 0, 'reason' => 'x'])
-            ->assertStatus(422)->assertJsonValidationErrors('amount');
+        $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/ajustement", ['montant' => 0, 'motif' => 'x'])
+            ->assertStatus(422)->assertJsonValidationErrors('montant', 'erreurs');
     }
 
     // --- Ledger ---
 
     public function test_the_full_scenario_from_the_brief_produces_the_expected_balance(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id, 50000);
 
-        $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-in", ['amount' => 20000])->assertStatus(201);
-        $response = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-out", ['amount' => 5000]);
+        $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/entree", ['montant' => 20000])->assertStatus(201);
+        $response = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/sortie", ['montant' => 5000]);
 
-        $response->assertStatus(201)->assertJsonPath('data.balance_after', '65000.00'); // 50000 + 20000 - 5000
+        $response->assertStatus(201)->assertJsonPath('donnees.solde_apres', '65000.00'); // 50000 + 20000 - 5000
     }
 
     // --- Immutability ---
 
     public function test_a_cash_movement_cannot_be_updated_or_deleted_through_the_api(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id);
-        $movementId = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-in", ['amount' => 1000])
-            ->json('data.id');
+        $movementId = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/entree", ['montant' => 1000])
+            ->json('donnees.id');
 
         // No such routes exist — a correction is a new adjustment, never an edit.
-        $this->putJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/movements/{$movementId}", ['amount' => 999])
+        $this->putJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/mouvements/{$movementId}", ['montant' => 999])
             ->assertStatus(404);
-        $this->deleteJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/movements/{$movementId}")
+        $this->deleteJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/mouvements/{$movementId}")
             ->assertStatus(404);
     }
 
@@ -146,31 +146,31 @@ class CashMovementTest extends TestCase
      */
     public function test_two_sequential_cash_outs_that_together_exceed_the_balance_cannot_both_succeed(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $register = CashRegister::factory()->for($store)->create();
         Sanctum::actingAs($owner);
         $sessionId = $this->openSession($store->id, $register->id, 5000);
 
-        $first = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-out", ['amount' => 4000]);
-        $second = $this->postJson("/api/stores/{$store->id}/cash-registers/{$register->id}/sessions/{$sessionId}/cash-out", ['amount' => 3000]);
+        $first = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/sortie", ['montant' => 4000]);
+        $second = $this->postJson("/api/boutiques/{$store->id}/caisses/{$register->id}/sessions/{$sessionId}/sortie", ['montant' => 3000]);
 
         $first->assertStatus(201);
-        $second->assertStatus(422)->assertJsonPath('code', 'INSUFFICIENT_CASH');
+        $second->assertStatus(422)->assertJsonPath('code', 'SOLDE_CAISSE_INSUFFISANT');
     }
 
     // --- Isolation ---
 
     public function test_a_member_of_another_store_cannot_record_a_movement_on_this_session(): void
     {
-        ['owner' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['caisse']);
         $registerA = CashRegister::factory()->for($storeA)->create();
         Sanctum::actingAs($ownerA);
         $sessionId = $this->openSession($storeA->id, $registerA->id);
 
-        ['owner' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['cash_register']);
+        ['proprietaire' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['caisse']);
         Sanctum::actingAs($ownerB);
 
-        $this->postJson("/api/stores/{$storeB->id}/cash-registers/{$registerA->id}/sessions/{$sessionId}/cash-in", ['amount' => 1000])
+        $this->postJson("/api/boutiques/{$storeB->id}/caisses/{$registerA->id}/sessions/{$sessionId}/entree", ['montant' => 1000])
             ->assertStatus(404);
     }
 
@@ -178,10 +178,10 @@ class CashMovementTest extends TestCase
 
     public function test_cash_register_is_blocked_when_the_domain_never_enabled_the_feature(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']); // cash_register NOT enabled
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']); // cash_register NOT enabled
         Sanctum::actingAs($owner);
 
-        $this->getJson("/api/stores/{$store->id}/cash-registers")
-            ->assertStatus(403)->assertJsonPath('code', 'FEATURE_DISABLED');
+        $this->getJson("/api/boutiques/{$store->id}/caisses")
+            ->assertStatus(403)->assertJsonPath('code', 'FONCTIONNALITE_DESACTIVEE');
     }
 }

@@ -15,9 +15,9 @@ class CreateCashRegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:100', TenantScopedRules::uniqueInCurrentStore('cash_registers', 'code')],
-            'is_active' => ['sometimes', 'boolean'],
+            'nom' => ['required', 'string', 'max:255'],
+            'code' => ['nullable', 'string', 'max:100', TenantScopedRules::uniqueInCurrentStore('caisses', 'code')],
+            'actif' => ['sometimes', 'boolean'],
         ];
     }
 }

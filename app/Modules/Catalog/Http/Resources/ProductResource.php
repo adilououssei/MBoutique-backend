@@ -15,21 +15,24 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'category' => new CategoryResource($this->whenLoaded('category')),
-            'name' => $this->name,
+            'categorie' => new CategoryResource($this->whenLoaded('category')),
+            'nom' => $this->nom,
             'slug' => $this->slug,
             'description' => $this->description,
+            // asset() suit l'hôte de la requête (IP du PC vue par le téléphone),
+            // contrairement à Storage::url() qui figerait APP_URL (localhost).
+            'image_url' => $this->image ? asset('storage/'.$this->image) : null,
             'sku' => $this->sku,
-            'barcode' => $this->barcode,
-            'unit' => $this->unit->value,
-            'purchase_price' => $this->purchase_price,
-            'retail_enabled' => $this->retail_enabled,
-            'retail_price' => $this->retail_price,
-            'wholesale_enabled' => $this->wholesale_enabled,
-            'wholesale_price' => $this->wholesale_price,
-            'is_active' => $this->is_active,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'code_barres' => $this->code_barres,
+            'unite' => $this->unite->value,
+            'prix_achat' => $this->prix_achat,
+            'vente_detail_active' => $this->vente_detail_active,
+            'prix_detail' => $this->prix_detail,
+            'vente_gros_active' => $this->vente_gros_active,
+            'prix_gros' => $this->prix_gros,
+            'actif' => $this->actif,
+            'cree_le' => $this->created_at,
+            'modifie_le' => $this->updated_at,
         ];
     }
 }

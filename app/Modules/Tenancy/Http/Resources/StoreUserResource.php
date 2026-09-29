@@ -16,11 +16,11 @@ class StoreUserResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'status' => $this->status->value,
-            'user' => new UserResource($this->whenLoaded('user')),
+            'statut' => $this->statut->value,
+            'utilisateur' => new UserResource($this->whenLoaded('user')),
             'roles' => $this->whenLoaded('user', fn () => $this->user->getRoleNames()),
-            'invited_at' => $this->invited_at,
-            'joined_at' => $this->joined_at,
+            'invite_le' => $this->invite_le,
+            'rejoint_le' => $this->rejoint_le,
         ];
     }
 }

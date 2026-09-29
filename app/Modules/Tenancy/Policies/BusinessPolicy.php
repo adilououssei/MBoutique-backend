@@ -14,13 +14,13 @@ class BusinessPolicy
 {
     public function view(User $user, Business $business): bool
     {
-        return $business->businessUsers()->where('user_id', $user->id)->exists();
+        return $business->businessUsers()->where('utilisateur_id', $user->id)->exists();
     }
 
     public function createStore(User $user, Business $business): bool
     {
         return $business->businessUsers()
-            ->where('user_id', $user->id)
+            ->where('utilisateur_id', $user->id)
             ->whereIn('role', [BusinessUserRole::Owner->value, BusinessUserRole::Admin->value])
             ->exists();
     }
@@ -28,7 +28,7 @@ class BusinessPolicy
     public function manageMembers(User $user, Business $business): bool
     {
         return $business->businessUsers()
-            ->where('user_id', $user->id)
+            ->where('utilisateur_id', $user->id)
             ->where('role', BusinessUserRole::Owner->value)
             ->exists();
     }

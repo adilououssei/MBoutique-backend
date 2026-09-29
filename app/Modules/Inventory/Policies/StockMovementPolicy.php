@@ -17,13 +17,13 @@ class StockMovementPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('inventory.view');
+        return $user->can('stock.voir');
     }
 
     public function create(User $user, Store $store, StockMovementType $type): bool
     {
         return $type === StockMovementType::Stocktake
-            ? $user->can('inventory.stocktake')
-            : $user->can('inventory.adjust');
+            ? $user->can('stock.inventorier')
+            : $user->can('stock.ajuster');
     }
 }

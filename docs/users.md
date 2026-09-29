@@ -10,18 +10,18 @@
 
 | Colonne | Type | Contrainte |
 |---|---|---|
-| `name` | string | requis |
+| `nom` | string | requis |
 | `email` | string | requis, **unique globalement** (identifiant de connexion) |
-| `phone` | string, nullable | **unique si renseigné** (NULL multiples autorisés) — utile pour une identification future par mobile money/OTP, non exigé à l'inscription |
+| `telephone` | string, nullable | **unique si renseigné** (NULL multiples autorisés) — utile pour une identification future par mobile money/OTP, non exigé à l'inscription |
 | `password` | string (hashed) | requis, jamais exposé (cast `hashed`, attribut `#[Hidden]`) |
-| `status` | string, cast `App\Enums\UserStatus` | `active` par défaut ; `inactive` bloque la connexion (voir [authentication.md](authentication.md)) |
+| `statut` | string, cast `App\Enums\UserStatus` | `actif` par défaut ; `inactive` bloque la connexion (voir [authentication.md](authentication.md)) |
 | `email_verified_at` | timestamp, nullable | présent au schéma, non exploité cette phase (pas de flux de vérification) |
-| `deleted_at` | soft delete | un `User` n'est jamais supprimé physiquement (référencé par de l'historique via `StoreUser`, `BusinessUser`, et plus tard `Sale.sold_by_user_id`, etc.) |
+| `deleted_at` | soft delete | un `User` n'est jamais supprimé physiquement (référencé par de l'historique via `StoreUser`, `BusinessUser`, et plus tard `Sale.vendeur_id`, etc.) |
 
-## Pourquoi `phone` est nullable + unique
+## Pourquoi `telephone` est nullable + unique
 
 Un utilisateur peut s'inscrire avec seulement un e-mail (cas standard). Le téléphone devient pertinent dès qu'un moyen de paiement mobile money ou une vérification par SMS est introduit — réserver la colonne et sa contrainte d'unicité maintenant évite une migration corrective plus tard, sans forcer sa saisie aujourd'hui.
 
 ## `UserResource`
 
-Expose `id`, `name`, `email`, `phone`, `status`, `created_at`. N'expose jamais `password`, `remember_token`, ni la relation `roles`/`businessMemberships`/`storeMemberships` brute (celles-ci sont exposées, quand nécessaire, par les Resources des modules concernés — `StoreUserResource` par exemple — pour ne pas coupler `UserResource` à la structure d'autres modules).
+Expose `id`, `nom`, `email`, `telephone`, `statut`, `created_at`. N'expose jamais `password`, `remember_token`, ni la relation `roles`/`businessMemberships`/`storeMemberships` brute (celles-ci sont exposées, quand nécessaire, par les Resources des modules concernés — `StoreUserResource` par exemple — pour ne pas coupler `UserResource` à la structure d'autres modules).

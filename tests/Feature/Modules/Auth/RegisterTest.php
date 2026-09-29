@@ -12,60 +12,60 @@ class RegisterTest extends TestCase
 
     public function test_a_user_can_register(): void
     {
-        $response = $this->postJson('/api/auth/register', [
-            'name' => 'Aïcha Koné',
+        $response = $this->postJson('/api/auth/inscription', [
+            'nom' => 'Aïcha Koné',
             'email' => 'aicha@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'mot_de_passe' => 'password123',
+            'mot_de_passe_confirmation' => 'password123',
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.user.email', 'aicha@example.com')
-            ->assertJsonStructure(['data' => ['user' => ['id', 'name', 'email'], 'token']]);
+            ->assertJsonPath('succes', true)
+            ->assertJsonPath('donnees.utilisateur.email', 'aicha@example.com')
+            ->assertJsonStructure(['donnees' => ['utilisateur' => ['id', 'nom', 'email'], 'jeton']]);
 
-        $this->assertDatabaseHas('users', ['email' => 'aicha@example.com']);
+        $this->assertDatabaseHas('utilisateurs', ['email' => 'aicha@example.com']);
     }
 
     public function test_the_response_never_exposes_the_password(): void
     {
-        $response = $this->postJson('/api/auth/register', [
-            'name' => 'Aïcha Koné',
+        $response = $this->postJson('/api/auth/inscription', [
+            'nom' => 'Aïcha Koné',
             'email' => 'aicha@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'mot_de_passe' => 'password123',
+            'mot_de_passe_confirmation' => 'password123',
         ]);
 
-        $response->assertJsonMissingPath('data.user.password')
-            ->assertJsonMissingPath('data.user.remember_token');
+        $response->assertJsonMissingPath('donnees.utilisateur.password')
+            ->assertJsonMissingPath('donnees.utilisateur.remember_token');
     }
 
     public function test_registration_requires_a_valid_email(): void
     {
-        $response = $this->postJson('/api/auth/register', [
-            'name' => 'Aïcha Koné',
+        $response = $this->postJson('/api/auth/inscription', [
+            'nom' => 'Aïcha Koné',
             'email' => 'not-an-email',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'mot_de_passe' => 'password123',
+            'mot_de_passe_confirmation' => 'password123',
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonPath('success', false)
-            ->assertJsonPath('code', 'VALIDATION_FAILED')
-            ->assertJsonValidationErrors('email');
+            ->assertJsonPath('succes', false)
+            ->assertJsonPath('code', 'VALIDATION_ECHOUEE')
+            ->assertJsonValidationErrors('email', 'erreurs');
     }
 
     public function test_registration_rejects_a_duplicate_email(): void
     {
         User::factory()->create(['email' => 'aicha@example.com']);
 
-        $response = $this->postJson('/api/auth/register', [
-            'name' => 'Aïcha Koné',
+        $response = $this->postJson('/api/auth/inscription', [
+            'nom' => 'Aïcha Koné',
             'email' => 'aicha@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'mot_de_passe' => 'password123',
+            'mot_de_passe_confirmation' => 'password123',
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('email');
+        $response->assertStatus(422)->assertJsonValidationErrors('email', 'erreurs');
     }
 }

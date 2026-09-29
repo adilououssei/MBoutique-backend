@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('clients', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->string('name');
-            $table->string('phone')->nullable();
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
+            $table->string('nom');
+            $table->string('telephone')->nullable();
             $table->string('email')->nullable();
-            $table->string('company_name')->nullable();
-            $table->string('address')->nullable();
+            $table->string('nom_entreprise')->nullable();
+            $table->string('adresse')->nullable();
             $table->text('notes')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('actif')->default(true);
             $table->timestamps();
             // SoftDeletes, not a hard delete — a Customer may already be
             // referenced by Sale.customer_id once Sales exists; see
@@ -32,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('clients');
     }
 };

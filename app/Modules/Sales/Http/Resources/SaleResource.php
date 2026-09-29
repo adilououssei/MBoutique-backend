@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * `discount`/`total` here, not `discount_amount`/`total_amount` (the
+ * `remise`/`total` here, not `montant_remise`/`montant_total` (the
  * column names) — matches the receipt contract exactly as specified by
  * the Phase 4.3 brief §17, a deliberate API-vs-storage naming split.
  *
@@ -21,15 +21,15 @@ class SaleResource extends JsonResource
         return [
             'id' => $this->id,
             'reference' => $this->reference,
-            'customer' => new CustomerResource($this->whenLoaded('customer')),
-            'sold_by' => $this->whenLoaded('soldBy', fn () => $this->soldBy ? ['id' => $this->soldBy->id, 'name' => $this->soldBy->name] : null),
-            'items' => SaleItemResource::collection($this->whenLoaded('items')),
-            'subtotal' => $this->subtotal,
-            'discount' => $this->discount_amount,
-            'total' => $this->total_amount,
-            'payment_method' => $this->payment_method->value,
-            'status' => $this->status->value,
-            'sold_at' => $this->sold_at,
+            'client' => new CustomerResource($this->whenLoaded('customer')),
+            'vendeur' => $this->whenLoaded('soldBy', fn () => $this->soldBy ? ['id' => $this->soldBy->id, 'nom' => $this->soldBy->nom] : null),
+            'lignes' => SaleItemResource::collection($this->whenLoaded('items')),
+            'sous_total' => $this->sous_total,
+            'remise' => $this->montant_remise,
+            'total' => $this->montant_total,
+            'mode_paiement' => $this->mode_paiement->value,
+            'statut' => $this->statut->value,
+            'vendue_le' => $this->vendue_le,
         ];
     }
 }

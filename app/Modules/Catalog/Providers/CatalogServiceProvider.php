@@ -37,7 +37,7 @@ class CatalogServiceProvider extends ServiceProvider
         // Phase 3 test suite. morphMap() only aliases the two types that
         // actually need it, without demanding universal coverage.
         Relation::morphMap([
-            'product' => Product::class,
+            'produit' => Product::class,
             'service' => Service::class,
         ]);
     }

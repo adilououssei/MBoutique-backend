@@ -10,17 +10,17 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->string('name');
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
+            $table->string('nom');
             $table->string('slug');
             $table->text('description')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('actif')->default(true);
             $table->timestamps();
             $table->softDeletes();
 
             // Scoped per store, not global — Store A and Store B can both
             // have a "boissons" category. See docs/catalog.md.
-            $table->unique(['store_id', 'slug']);
+            $table->unique(['boutique_id', 'slug']);
         });
     }
 

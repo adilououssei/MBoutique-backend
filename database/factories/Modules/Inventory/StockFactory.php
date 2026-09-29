@@ -17,18 +17,18 @@ class StockFactory extends Factory
     public function definition(): array
     {
         return [
-            'store_id' => Store::factory(),
-            'product_id' => Product::factory(),
-            'quantity' => fake()->randomFloat(3, 0, 200),
-            'minimum_quantity' => null,
+            'boutique_id' => Store::factory(),
+            'produit_id' => Product::factory(),
+            'quantite' => fake()->randomFloat(3, 0, 200),
+            'quantite_minimum' => null,
         ];
     }
 
     public function lowStock(): static
     {
         return $this->state(fn () => [
-            'quantity' => 5,
-            'minimum_quantity' => 10,
+            'quantite' => 5,
+            'quantite_minimum' => 10,
         ]);
     }
 }

@@ -15,13 +15,13 @@ class BusinessResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'legal_name' => $this->legal_name,
-            'country' => $this->country,
-            'currency' => $this->currency,
-            'timezone' => $this->timezone,
-            'status' => $this->status->value,
-            'created_at' => $this->created_at,
+            'nom' => $this->nom,
+            'raison_sociale' => $this->raison_sociale,
+            'pays' => $this->pays,
+            'devise' => $this->devise,
+            'fuseau_horaire' => $this->fuseau_horaire,
+            'statut' => $this->statut->value,
+            'cree_le' => $this->created_at,
         ];
     }
 }

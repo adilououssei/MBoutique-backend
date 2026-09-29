@@ -8,23 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('store_users', function (Blueprint $table) {
+        Schema::create('utilisateurs_boutique', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->restrictOnDelete();
-            $table->string('status')->default('active');
-            $table->foreignId('invited_by_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('invited_at')->nullable();
-            $table->timestamp('joined_at')->nullable();
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('utilisateur_id')->constrained()->restrictOnDelete();
+            $table->string('statut')->default('actif');
+            $table->foreignId('invite_par_id')->nullable()->constrained('utilisateurs')->nullOnDelete();
+            $table->timestamp('invite_le')->nullable();
+            $table->timestamp('rejoint_le')->nullable();
             $table->timestamps();
 
-            $table->unique(['store_id', 'user_id']);
-            $table->index('user_id');
+            $table->unique(['boutique_id', 'utilisateur_id']);
+            $table->index('utilisateur_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('store_users');
+        Schema::dropIfExists('utilisateurs_boutique');
     }
 };

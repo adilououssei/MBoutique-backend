@@ -8,22 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('plans', function (Blueprint $table) {
+        Schema::create('forfaits', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
-            $table->string('name');
-            $table->decimal('price_monthly', 12, 2)->default(0);
-            $table->decimal('price_yearly', 12, 2)->nullable();
-            $table->unsignedInteger('max_stores')->nullable();
-            $table->unsignedInteger('max_users_per_store')->nullable();
-            $table->unsignedInteger('max_products_per_store')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('nom');
+            $table->decimal('prix_mensuel', 12, 2)->default(0);
+            $table->decimal('prix_annuel', 12, 2)->nullable();
+            $table->unsignedInteger('max_boutiques')->nullable();
+            $table->unsignedInteger('max_utilisateurs_par_boutique')->nullable();
+            $table->unsignedInteger('max_produits_par_boutique')->nullable();
+            $table->boolean('actif')->default(true);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('plans');
+        Schema::dropIfExists('forfaits');
     }
 };

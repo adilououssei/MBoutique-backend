@@ -24,23 +24,23 @@ class CashRegisterSessionFactory extends Factory
     public function definition(): array
     {
         return [
-            'store_id' => Store::factory(),
-            'cash_register_id' => CashRegister::factory(),
-            'opened_by_user_id' => null,
-            'opened_at' => now(),
-            'opening_amount' => 50000,
-            'status' => CashRegisterSessionStatus::Open,
+            'boutique_id' => Store::factory(),
+            'caisse_id' => CashRegister::factory(),
+            'ouverte_par_id' => null,
+            'ouverte_le' => now(),
+            'montant_ouverture' => 50000,
+            'statut' => CashRegisterSessionStatus::Open,
         ];
     }
 
     public function closed(): static
     {
         return $this->state(fn () => [
-            'status' => CashRegisterSessionStatus::Closed,
-            'closed_at' => now(),
-            'expected_closing_amount' => 50000,
-            'actual_closing_amount' => 50000,
-            'difference' => 0,
+            'statut' => CashRegisterSessionStatus::Closed,
+            'fermee_le' => now(),
+            'montant_fermeture_attendu' => 50000,
+            'montant_fermeture_reel' => 50000,
+            'ecart' => 0,
         ]);
     }
 }

@@ -22,14 +22,14 @@ class SaleItemFactory extends Factory
         $unitPrice = fake()->randomFloat(2, 100, 5000);
 
         return [
-            'store_id' => Store::factory(),
-            'sale_id' => Sale::factory(),
-            'product_id' => Product::factory(),
-            'product_name' => fake()->words(2, true),
-            'pricing_mode' => PricingMode::Retail,
-            'unit_price' => $unitPrice,
-            'quantity' => $quantity,
-            'total_amount' => bcmul((string) $unitPrice, (string) $quantity, 2),
+            'boutique_id' => Store::factory(),
+            'vente_id' => Sale::factory(),
+            'produit_id' => Product::factory(),
+            'nom_produit' => fake()->words(2, true),
+            'mode_prix' => PricingMode::Retail,
+            'prix_unitaire' => $unitPrice,
+            'quantite' => $quantity,
+            'montant_total' => bcmul((string) $unitPrice, (string) $quantity, 2),
         ];
     }
 }

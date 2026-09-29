@@ -16,36 +16,36 @@ class LoginTest extends TestCase
     {
         User::factory()->create(['email' => 'aicha@example.com', 'password' => Hash::make('password123')]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/auth/connexion', [
             'email' => 'aicha@example.com',
-            'password' => 'password123',
+            'mot_de_passe' => 'password123',
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['user', 'token']]);
+            ->assertJsonPath('succes', true)
+            ->assertJsonStructure(['donnees' => ['utilisateur', 'jeton']]);
     }
 
     public function test_login_fails_with_a_wrong_password(): void
     {
         User::factory()->create(['email' => 'aicha@example.com', 'password' => Hash::make('password123')]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/auth/connexion', [
             'email' => 'aicha@example.com',
-            'password' => 'wrong-password',
+            'mot_de_passe' => 'wrong-password',
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('email');
+        $response->assertStatus(422)->assertJsonValidationErrors('email', 'erreurs');
     }
 
     public function test_login_fails_for_an_unknown_email(): void
     {
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/auth/connexion', [
             'email' => 'ghost@example.com',
-            'password' => 'password123',
+            'mot_de_passe' => 'password123',
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('email');
+        $response->assertStatus(422)->assertJsonValidationErrors('email', 'erreurs');
     }
 
     public function test_an_inactive_user_cannot_login(): void
@@ -53,15 +53,15 @@ class LoginTest extends TestCase
         User::factory()->create([
             'email' => 'aicha@example.com',
             'password' => Hash::make('password123'),
-            'status' => UserStatus::Inactive,
+            'statut' => UserStatus::Inactive,
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/auth/connexion', [
             'email' => 'aicha@example.com',
-            'password' => 'password123',
+            'mot_de_passe' => 'password123',
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('email');
+        $response->assertStatus(422)->assertJsonValidationErrors('email', 'erreurs');
     }
 
     public function test_login_is_rate_limited_after_too_many_attempts(): void
@@ -69,17 +69,17 @@ class LoginTest extends TestCase
         User::factory()->create(['email' => 'aicha@example.com', 'password' => Hash::make('password123')]);
 
         for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/auth/login', [
+            $this->postJson('/api/auth/connexion', [
                 'email' => 'aicha@example.com',
-                'password' => 'wrong-password',
+                'mot_de_passe' => 'wrong-password',
             ])->assertStatus(422);
         }
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/auth/connexion', [
             'email' => 'aicha@example.com',
-            'password' => 'wrong-password',
+            'mot_de_passe' => 'wrong-password',
         ]);
 
-        $response->assertStatus(429)->assertJsonPath('code', 'TOO_MANY_REQUESTS');
+        $response->assertStatus(429)->assertJsonPath('code', 'TROP_DE_REQUETES');
     }
 }

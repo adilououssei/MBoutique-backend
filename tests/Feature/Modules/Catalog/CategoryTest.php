@@ -14,94 +14,94 @@ class CategoryTest extends TestCase
 
     public function test_owner_can_create_a_category(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
         Sanctum::actingAs($owner);
 
-        $response = $this->postJson("/api/stores/{$store->id}/categories", ['name' => 'Boissons']);
+        $response = $this->postJson("/api/boutiques/{$store->id}/categories", ['nom' => 'Boissons']);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.name', 'Boissons')
-            ->assertJsonPath('data.slug', 'boissons');
+            ->assertJsonPath('donnees.nom', 'Boissons')
+            ->assertJsonPath('donnees.slug', 'boissons');
 
-        $this->assertDatabaseHas('categories', ['store_id' => $store->id, 'slug' => 'boissons']);
+        $this->assertDatabaseHas('categories', ['boutique_id' => $store->id, 'slug' => 'boissons']);
     }
 
     public function test_owner_can_list_categories(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
         Category::factory()->for($store)->count(3)->create();
         Sanctum::actingAs($owner);
 
-        $response = $this->getJson("/api/stores/{$store->id}/categories");
+        $response = $this->getJson("/api/boutiques/{$store->id}/categories");
 
-        $response->assertStatus(200)->assertJsonCount(3, 'data');
+        $response->assertStatus(200)->assertJsonCount(3, 'donnees');
     }
 
     public function test_owner_can_read_a_single_category(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
         $category = Category::factory()->for($store)->create();
         Sanctum::actingAs($owner);
 
-        $this->getJson("/api/stores/{$store->id}/categories/{$category->id}")
+        $this->getJson("/api/boutiques/{$store->id}/categories/{$category->id}")
             ->assertStatus(200)
-            ->assertJsonPath('data.id', $category->id);
+            ->assertJsonPath('donnees.id', $category->id);
     }
 
     public function test_owner_can_update_a_category(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
-        $category = Category::factory()->for($store)->create(['name' => 'Old']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        $category = Category::factory()->for($store)->create(['nom' => 'Old']);
         Sanctum::actingAs($owner);
 
-        $response = $this->putJson("/api/stores/{$store->id}/categories/{$category->id}", ['name' => 'New']);
+        $response = $this->putJson("/api/boutiques/{$store->id}/categories/{$category->id}", ['nom' => 'New']);
 
-        $response->assertStatus(200)->assertJsonPath('data.name', 'New');
+        $response->assertStatus(200)->assertJsonPath('donnees.nom', 'New');
     }
 
     public function test_owner_can_delete_a_category(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
         $category = Category::factory()->for($store)->create();
         Sanctum::actingAs($owner);
 
-        $this->deleteJson("/api/stores/{$store->id}/categories/{$category->id}")->assertStatus(200);
+        $this->deleteJson("/api/boutiques/{$store->id}/categories/{$category->id}")->assertStatus(200);
 
         $this->assertSoftDeleted('categories', ['id' => $category->id]);
     }
 
     public function test_the_same_slug_is_valid_in_two_different_stores(): void
     {
-        ['owner' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['categories']);
         Sanctum::actingAs($ownerA);
-        $this->postJson("/api/stores/{$storeA->id}/categories", ['name' => 'Boissons'])->assertStatus(201);
+        $this->postJson("/api/boutiques/{$storeA->id}/categories", ['nom' => 'Boissons'])->assertStatus(201);
 
-        ['owner' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['categories']);
         Sanctum::actingAs($ownerB);
-        $this->postJson("/api/stores/{$storeB->id}/categories", ['name' => 'Boissons'])->assertStatus(201);
+        $this->postJson("/api/boutiques/{$storeB->id}/categories", ['nom' => 'Boissons'])->assertStatus(201);
 
         $this->assertDatabaseCount('categories', 2);
     }
 
     public function test_the_same_slug_is_rejected_twice_in_the_same_store(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/categories", ['name' => 'Boissons'])->assertStatus(201);
+        $this->postJson("/api/boutiques/{$store->id}/categories", ['nom' => 'Boissons'])->assertStatus(201);
 
-        $response = $this->postJson("/api/stores/{$store->id}/categories", ['name' => 'Boissons']);
+        $response = $this->postJson("/api/boutiques/{$store->id}/categories", ['nom' => 'Boissons']);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('slug');
+        $response->assertStatus(422)->assertJsonValidationErrors('slug', 'erreurs');
     }
 
     public function test_name_is_required(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['categories']);
         Sanctum::actingAs($owner);
 
-        $this->postJson("/api/stores/{$store->id}/categories", [])
+        $this->postJson("/api/boutiques/{$store->id}/categories", [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('name');
+            ->assertJsonValidationErrors('nom', 'erreurs');
     }
 
     public function test_a_member_of_another_store_cannot_read_this_categorys_store(): void
@@ -109,11 +109,11 @@ class CategoryTest extends TestCase
         ['store' => $storeA] = $this->createStoreWithFeatures(['categories']);
         $category = Category::factory()->for($storeA)->create();
 
-        ['owner' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['categories']);
+        ['proprietaire' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['categories']);
         Sanctum::actingAs($ownerB);
 
         // storeB in the URL, but the category id belongs to storeA — must
         // 404 via scoped route model binding, never resolve.
-        $this->getJson("/api/stores/{$storeB->id}/categories/{$category->id}")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$storeB->id}/categories/{$category->id}")->assertStatus(404);
     }
 }

@@ -6,21 +6,21 @@ Module `app/Modules/Tenancy/`. Voir [database.md](database.md) §2 pour le sché
 
 | Méthode | Route | Auth requise | Autorisation |
 |---|---|---|---|
-| GET | `/api/businesses` | oui | liste les Business dont l'utilisateur est `BusinessUser` |
-| POST | `/api/businesses` | oui | tout utilisateur authentifié peut créer un Business (devient `owner`) |
-| GET | `/api/businesses/{business}` | oui | `BusinessPolicy::view` — membre (tout rôle) |
-| POST | `/api/businesses/{business}/users` | oui | `BusinessPolicy::manageMembers` — `owner` uniquement |
-| GET | `/api/businesses/{business}/stores` | oui | `BusinessPolicy::view` |
-| POST | `/api/businesses/{business}/stores` | oui | `BusinessPolicy::createStore` — `owner` ou `admin` |
-| GET | `/api/stores` | oui | aucune (retourne les stores de l'appelant lui-même) — voir §"Store switching" |
-| GET | `/api/stores/{store}` | oui | middleware `store` (membre actif) puis `StorePolicy::view` |
-| GET | `/api/stores/{store}/members` | oui | middleware `store` puis permission `store_users.view` |
-| POST | `/api/stores/{store}/members` | oui | middleware `store` puis permission `store_users.manage` |
-| DELETE | `/api/stores/{store}/members/{user}` | oui | middleware `store` puis permission `store_users.manage` |
+| GET | `/api/entreprises` | oui | liste les Business dont l'utilisateur est `BusinessUser` |
+| POST | `/api/entreprises` | oui | tout utilisateur authentifié peut créer un Business (devient `proprietaire`) |
+| GET | `/api/entreprises/{business}` | oui | `BusinessPolicy::view` — membre (tout rôle) |
+| POST | `/api/entreprises/{business}/utilisateurs` | oui | `BusinessPolicy::manageMembers` — `proprietaire` uniquement |
+| GET | `/api/entreprises/{business}/boutiques` | oui | `BusinessPolicy::view` |
+| POST | `/api/entreprises/{business}/boutiques` | oui | `BusinessPolicy::createStore` — `proprietaire` ou `administrateur` |
+| GET | `/api/boutiques` | oui | aucune (retourne les stores de l'appelant lui-même) — voir §"Store switching" |
+| GET | `/api/boutiques/{store}` | oui | middleware `store` (membre actif) puis `StorePolicy::view` |
+| GET | `/api/boutiques/{store}/membres` | oui | middleware `store` puis permission `membres.voir` |
+| POST | `/api/boutiques/{store}/membres` | oui | middleware `store` puis permission `membres.gerer` |
+| DELETE | `/api/boutiques/{store}/membres/{user}` | oui | middleware `store` puis permission `membres.gerer` |
 
 ## Store switching — décision confirmée
 
-L'architecture déjà validée (`docs/multi-tenancy.md` §5) imposait `{store}` dans l'URL comme unique mécanisme d'identification du tenant courant, sans état côté serveur. Cette phase confirme ce choix plutôt que d'en explorer d'autres (header, session) : `GET /api/stores` retourne la liste des boutiques actives de l'utilisateur (avec son rôle sur chacune, résolu via `StoreController::roleOnStore()`), et c'est au client (mobile/React) de mémoriser la boutique sélectionnée et de l'inclure dans chaque URL suivante. Le backend ne fait confiance à aucun état de sélection côté client au-delà de cette vérification par requête.
+L'architecture déjà validée (`docs/multi-tenancy.md` §5) imposait `{store}` dans l'URL comme unique mécanisme d'identification du tenant courant, sans état côté serveur. Cette phase confirme ce choix plutôt que d'en explorer d'autres (header, session) : `GET /api/boutiques` retourne la liste des boutiques actives de l'utilisateur (avec son rôle sur chacune, résolu via `StoreController::roleOnStore()`), et c'est au client (mobile/React) de mémoriser la boutique sélectionnée et de l'inclure dans chaque URL suivante. Le backend ne fait confiance à aucun état de sélection côté client au-delà de cette vérification par requête.
 
 ## Provisionnement automatique des accès (implémenté cette phase)
 
@@ -32,11 +32,11 @@ Conforme à `docs/database.md` §2 :
 
 ## Rôles store-level provisionnés par défaut
 
-`App\Modules\Authorization\Support\StoreRole` : `owner`, `admin`, `manager`, `cashier`, `employee`. Permissions accordées cette phase (`store_users.view`, `store_users.manage`) — voir `StoreRole::defaultPermissions()`. Ce sont des rôles **modèles**, librement modifiables ensuite par le propriétaire de la boutique (spatie ne restreint pas leur édition) ; le code ne teste jamais `if ($role === 'manager')`, uniquement des permissions.
+`App\Modules\Authorization\Support\StoreRole` : `proprietaire`, `administrateur`, `gerant`, `caissier`, `employe`. Permissions accordées cette phase (`membres.voir`, `membres.gerer`) — voir `StoreRole::defaultPermissions()`. Ce sont des rôles **modèles**, librement modifiables ensuite par le propriétaire de la boutique (spatie ne restreint pas leur édition) ; le code ne teste jamais `if ($role === 'gerant')`, uniquement des permissions.
 
-## `business_domain_id` — absent de `stores` (rappel assumé)
+## `domaine_activite_id` — absent de `boutiques` (rappel assumé)
 
-Comme documenté avant l'implémentation, `stores.business_domain_id` n'existe pas encore : le module `Features`/`BusinessDomain` est Phase 2. La colonne sera ajoutée par une migration dédiée à ce moment, pas en modifiant celle-ci.
+Comme documenté avant l'implémentation, `boutiques.domaine_activite_id` n'existe pas encore : le module `Features`/`BusinessDomain` est Phase 2. La colonne sera ajoutée par une migration dédiée à ce moment, pas en modifiant celle-ci.
 
 ## Décision finale : 404 pour tout accès non autorisé à un Store
 
@@ -44,7 +44,7 @@ Comme documenté avant l'implémentation, `stores.business_domain_id` n'existe p
 
 ## Bug trouvé et corrigé pendant cette phase
 
-`Business::create()`/`Store::create()` échouaient avec une violation de contrainte `NOT NULL` sur `owner_user_id`/`business_id`. Cause : ces colonnes sont délibérément absentes de `$fillable` (elles ne doivent jamais provenir d'un input client), donc silencieusement ignorées par le mass assignment lors de la création par le service lui-même. Corrigé en construisant le modèle avec les données validées puis en fixant la valeur serveur via `forceFill()` avant `save()` — le mécanisme correct pour qu'un service de confiance renseigne un champ volontairement non fillable, sans l'ouvrir au mass assignment côté client. Voir `BusinessService::createForOwner` et `StoreService::createForBusiness`.
+`Business::create()`/`Store::create()` échouaient avec une violation de contrainte `NOT NULL` sur `proprietaire_id`/`entreprise_id`. Cause : ces colonnes sont délibérément absentes de `$fillable` (elles ne doivent jamais provenir d'un input client), donc silencieusement ignorées par le mass assignment lors de la création par le service lui-même. Corrigé en construisant le modèle avec les données validées puis en fixant la valeur serveur via `forceFill()` avant `save()` — le mécanisme correct pour qu'un service de confiance renseigne un champ volontairement non fillable, sans l'ouvrir au mass assignment côté client. Voir `BusinessService::createForOwner` et `StoreService::createForBusiness`.
 
 ## Second bug, plus critique : `StoreTeamResolver` ne pouvait pas être instancié
 

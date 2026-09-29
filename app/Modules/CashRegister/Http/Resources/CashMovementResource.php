@@ -16,17 +16,17 @@ class CashMovementResource extends JsonResource
         return [
             'id' => $this->id,
             'type' => $this->type->value,
-            'amount' => $this->amount,
-            'balance_before' => $this->balance_before,
-            'balance_after' => $this->balance_after,
-            'reason' => $this->reason,
+            'montant' => $this->montant,
+            'solde_avant' => $this->solde_avant,
+            'solde_apres' => $this->solde_apres,
+            'motif' => $this->motif,
             'reference_type' => $this->reference_type,
             'reference_id' => $this->reference_id,
-            'created_by' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
+            'cree_par' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
                 'id' => $this->createdBy->id,
-                'name' => $this->createdBy->name,
+                'nom' => $this->createdBy->nom,
             ] : null),
-            'created_at' => $this->created_at,
+            'cree_le' => $this->created_at,
         ];
     }
 }

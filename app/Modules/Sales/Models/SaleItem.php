@@ -7,6 +7,7 @@ use App\Modules\Catalog\Models\Product;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\Sales\SaleItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * (pricing_mode/détail-gros are Product-specific concepts, see
  * docs/sales.md §"Écart d'architecture").
  */
-#[Fillable(['sale_id', 'product_id', 'product_name', 'pricing_mode', 'unit_price', 'quantity', 'total_amount'])]
+#[Fillable(['vente_id', 'produit_id', 'nom_produit', 'mode_prix', 'prix_unitaire', 'quantite', 'montant_total'])]
+#[Table('lignes_vente')]
 class SaleItem extends Model
 {
     use BelongsToStore, HasFactory;
@@ -27,10 +29,10 @@ class SaleItem extends Model
     protected function casts(): array
     {
         return [
-            'pricing_mode' => PricingMode::class,
-            'unit_price' => 'decimal:2',
-            'quantity' => 'decimal:3',
-            'total_amount' => 'decimal:2',
+            'mode_prix' => PricingMode::class,
+            'prix_unitaire' => 'decimal:2',
+            'quantite' => 'decimal:3',
+            'montant_total' => 'decimal:2',
         ];
     }
 
@@ -41,11 +43,11 @@ class SaleItem extends Model
 
     public function sale(): BelongsTo
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Sale::class, 'vente_id');
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'produit_id');
     }
 }

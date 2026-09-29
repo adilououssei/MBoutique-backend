@@ -20,63 +20,63 @@ Une boutique peut avoir plusieurs `CashRegister`. Chaque `CashRegister` accumule
 
 | Champ | Règle |
 |---|---|
-| `name` | requis |
+| `nom` | requis |
 | `code` | nullable, unique par store (pas globalement) |
-| `is_active` | défaut `true` — voir §12 |
-| `open_session_id` | pointeur interne, jamais exposé en écriture — voir §3 |
+| `actif` | défaut `true` — voir §12 |
+| `session_ouverte_id` | pointeur interne, jamais exposé en écriture — voir §3 |
 
-Pas de suppression physique (`DELETE`) — une caisse ayant un historique de sessions ne doit jamais perdre cet historique. `is_active=false` la désactive sans y toucher.
+Pas de suppression physique (`DELETE`) — une caisse ayant un historique de sessions ne doit jamais perdre cet historique. `actif=false` la désactive sans y toucher.
 
 ## 3. Une seule session ouverte — garantie applicative et DB
 
-`cash_registers.open_session_id` (nullable, **unique**, sans contrainte FK — voir §4) est l'unique pointeur vers "la session actuellement ouverte de cette caisse". Une caisse ne peut structurellement pointer que vers **une** session à la fois : ce n'est pas une contrainte ajoutée après coup sur `CashRegisterSession.status`, c'est la forme même du schéma qui rend "deux sessions ouvertes pour la même caisse" impossible à représenter. `CashRegisterService::openSession()` verrouille la ligne `CashRegister` (`lockForUpdate()`) avant de vérifier `open_session_id === null`, à l'intérieur d'une transaction — la seconde tentative concurrente d'ouverture attend que la première commite, puis échoue proprement (`422 CASH_REGISTER_ALREADY_OPEN`).
+`caisses.session_ouverte_id` (nullable, **unique**, sans contrainte FK — voir §4) est l'unique pointeur vers "la session actuellement ouverte de cette caisse". Une caisse ne peut structurellement pointer que vers **une** session à la fois : ce n'est pas une contrainte ajoutée après coup sur `CashRegisterSession.statut`, c'est la forme même du schéma qui rend "deux sessions ouvertes pour la même caisse" impossible à représenter. `CashRegisterService::openSession()` verrouille la ligne `CashRegister` (`lockForUpdate()`) avant de vérifier `session_ouverte_id === null`, à l'intérieur d'une transaction — la seconde tentative concurrente d'ouverture attend que la première commite, puis échoue proprement (`422 CAISSE_DEJA_OUVERTE`).
 
-`CashRegisterSession.status` (`open`/`closed`) reste une colonne à part entière — utile pour l'historique/le filtrage — maintenue en cohérence avec `open_session_id` par le même service, jamais par un autre chemin d'écriture.
+`CashRegisterSession.statut` (`ouverte`/`fermee`) reste une colonne à part entière — utile pour l'historique/le filtrage — maintenue en cohérence avec `session_ouverte_id` par le même service, jamais par un autre chemin d'écriture.
 
-## 4. Pourquoi `open_session_id` n'a pas de contrainte FK
+## 4. Pourquoi `session_ouverte_id` n'a pas de contrainte FK
 
-`cash_registers` référence `cash_register_sessions`, qui elle-même référence `cash_registers` (`cash_register_id`) — dépendance circulaire entre les deux tables. Plutôt qu'une troisième migration `ALTER TABLE` pour ajouter la FK après coup, `open_session_id` reste un entier nullable+unique sans contrainte référentielle : le seul et unique écrivain est `CashRegisterService`, toujours sous verrou, ce qui suffit à garantir sa cohérence sans complexité migratoire supplémentaire — cohérent avec la consigne de rester pragmatique (§52 du prompt de phase).
+`caisses` référence `sessions_caisse`, qui elle-même référence `caisses` (`caisse_id`) — dépendance circulaire entre les deux tables. Plutôt qu'une troisième migration `ALTER TABLE` pour ajouter la FK après coup, `session_ouverte_id` reste un entier nullable+unique sans contrainte référentielle : le seul et unique écrivain est `CashRegisterService`, toujours sous verrou, ce qui suffit à garantir sa cohérence sans complexité migratoire supplémentaire — cohérent avec la consigne de rester pragmatique (§52 du prompt de phase).
 
 ## 5. Ouverture et premier mouvement
 
-Décision (Phase 4.2 §16) : `opening_amount` **n'est pas** juste un champ sur `CashRegisterSession` pendant que le ledger démarrerait à 0 — l'ouverture crée un `CashMovement` explicite de type `opening` (`balance_before=0`, `balance_after=opening_amount`), exactement comme `StockMovementType::Initial` pour Inventory (`docs/inventory.md`). Une seule source de vérité : le solde se lit toujours depuis le dernier mouvement, jamais depuis un champ dupliqué.
+Décision (Phase 4.2 §16) : `montant_ouverture` **n'est pas** juste un champ sur `CashRegisterSession` pendant que le ledger démarrerait à 0 — l'ouverture crée un `CashMovement` explicite de type `ouverture` (`solde_avant=0`, `solde_apres=montant_ouverture`), exactement comme `StockMovementType::Initial` pour Inventory (`docs/inventory.md`). Une seule source de vérité : le solde se lit toujours depuis le dernier mouvement, jamais depuis un champ dupliqué.
 
-## 6. Solde de la session — pas de champ `current_balance` en base
+## 6. Solde de la session — pas de champ `solde_courant` en base
 
-Décision documentée (Phase 4.2 §15) : `CashRegisterSession` ne porte **pas** de colonne `current_balance` — le schéma proposé par le prompt ne le liste pas, et une session a toujours au moins un mouvement (`opening`) dès qu'elle existe. Le solde courant se lit en O(1) : `CashMovement::where('cash_register_session_id', ...)->latest('id')->value('balance_after')`. Pas de deuxième source de vérité à synchroniser ; le ledger reste l'unique source, comme pour Inventory (`docs/inventory.md` §2).
+Décision documentée (Phase 4.2 §15) : `CashRegisterSession` ne porte **pas** de colonne `solde_courant` — le schéma proposé par le prompt ne le liste pas, et une session a toujours au moins un mouvement (`ouverture`) dès qu'elle existe. Le solde courant se lit en O(1) : `CashMovement::where('session_caisse_id', ...)->latest('id')->value('solde_apres')`. Pas de deuxième source de vérité à synchroniser ; le ledger reste l'unique source, comme pour Inventory (`docs/inventory.md` §2).
 
 ## 7. Ledger append-only
 
-Aucune route `PUT`/`DELETE` sur un `CashMovement` — vérifié par test (les routes n'existent tout simplement pas : 404). Une erreur constatée s'exprime comme un nouveau mouvement compensatoire (type `adjustment`), jamais comme une édition du mouvement fautif.
+Aucune route `PUT`/`DELETE` sur un `CashMovement` — vérifié par test (les routes n'existent tout simplement pas : 404). Une erreur constatée s'exprime comme un nouveau mouvement compensatoire (type `ajustement`), jamais comme une édition du mouvement fautif.
 
 ## 8. Types de mouvements
 
 | Type | Créable manuellement | Notes |
 |---|---|---|
-| `opening` | non (créé par `openSession()`) | voir §5 |
-| `cash_in` | oui | entrée manuelle |
-| `cash_out` | oui | sortie manuelle, refusée si elle dépasserait le solde — §9 |
-| `adjustment` | oui, `reason` obligatoire | signé (positif ou négatif) — §10 |
-| `sale` | **non** | réservé au futur module Sales, voir §14 |
-| `refund` | **non** | préparé (Phase 4.2 §12 : "ne sera pas utilisé par Sales dans cette phase"), réservé de la même façon |
+| `ouverture` | non (créé par `openSession()`) | voir §5 |
+| `entree` | oui | entrée manuelle |
+| `sortie` | oui | sortie manuelle, refusée si elle dépasserait le solde — §9 |
+| `ajustement` | oui, `motif` obligatoire | signé (positif ou négatif) — §10 |
+| `vente` | **non** | réservé au futur module Sales, voir §14 |
+| `remboursement` | **non** | préparé (Phase 4.2 §12 : "ne sera pas utilisé par Sales dans cette phase"), réservé de la même façon |
 
-`CashMovementType::manuallyRecordable()` exclut `opening`/`sale`/`refund` — trois `CreateXRequest` distincts (`CashInRequest`, `CashOutRequest`, `AdjustCashRequest`), pas un unique endpoint générique avec un champ `type`, conformément à la liste de Form Requests explicitement nommée par le prompt de phase (§44).
+`CashMovementType::manuallyRecordable()` exclut `ouverture`/`vente`/`remboursement` — trois `CreateXRequest` distincts (`CashInRequest`, `CashOutRequest`, `AdjustCashRequest`), pas un unique endpoint générique avec un champ `type`, conformément à la liste de Form Requests explicitement nommée par le prompt de phase (§44).
 
 ## 9. Solde négatif interdit
 
-`CashRegisterService` vérifie `bccomp($balanceAfter, '0', 2) < 0` **avant** d'écrire un `cash_out` ou un `adjustment` négatif ; si l'opération ferait passer le solde sous zéro, `InsufficientCashException` est levée → `422 INSUFFICIENT_CASH`, jamais une 500, jamais un solde négatif persisté. Même garde pour les deux (`cash_out` et `adjustment`) — physiquement, un tiroir-caisse ne peut pas contenir un montant négatif, quelle que soit l'origine de la sortie.
+`CashRegisterService` vérifie `bccomp($balanceAfter, '0', 2) < 0` **avant** d'écrire un `sortie` ou un `ajustement` négatif ; si l'opération ferait passer le solde sous zéro, `InsufficientCashException` est levée → `422 SOLDE_CAISSE_INSUFFISANT`, jamais une 500, jamais un solde négatif persisté. Même garde pour les deux (`sortie` et `ajustement`) — physiquement, un tiroir-caisse ne peut pas contenir un montant négatif, quelle que soit l'origine de la sortie.
 
 ## 10. Ajustement
 
-`amount` est **signé** (contrairement à `cash_in`/`cash_out`, dont `amount` est une magnitude non signée validée par `gt:0`) — un ajustement peut corriger dans les deux sens. `reason` est **obligatoire** (Phase 4.2 §19), et un montant de `0` est explicitement rejeté (ne changerait rien, n'a pas de sens dans un audit).
+`montant` est **signé** (contrairement à `entree`/`sortie`, dont `montant` est une magnitude non signée validée par `gt:0`) — un ajustement peut corriger dans les deux sens. `motif` est **obligatoire** (Phase 4.2 §19), et un montant de `0` est explicitement rejeté (ne changerait rien, n'a pas de sens dans un audit).
 
 ## 11. Fermeture
 
-`POST .../sessions/{session}/close` : le client envoie uniquement `actual_closing_amount` (compté physiquement) et `closing_note` optionnel. `expected_closing_amount` est **toujours calculé par le backend** (le solde courant au moment de la fermeture, §6) — jamais saisi par le client. `difference = actual - expected`, signe conservé (positif = excédent, négatif = manque, jamais transformé en valeur absolue). Verrouillage : `CashRegister` puis `CashRegisterSession` (même ordre qu'à l'ouverture, pour éviter un deadlock entre une ouverture et une fermeture concurrentes sur la même caisse). Après fermeture : `status=closed`, `open_session_id` remis à `null` sur la caisse — elle peut être rouverte (nouvelle session) mais celle-ci reste figée définitivement (§7, aucun endpoint ne permet de la rouvrir ni de la modifier).
+`POST .../sessions/{session}/fermer` : le client envoie uniquement `montant_fermeture_reel` (compté physiquement) et `note_fermeture` optionnel. `montant_fermeture_attendu` est **toujours calculé par le backend** (le solde courant au moment de la fermeture, §6) — jamais saisi par le client. `difference = actual - expected`, signe conservé (positif = excédent, négatif = manque, jamais transformé en valeur absolue). Verrouillage : `CashRegister` puis `CashRegisterSession` (même ordre qu'à l'ouverture, pour éviter un deadlock entre une ouverture et une fermeture concurrentes sur la même caisse). Après fermeture : `status=fermee`, `session_ouverte_id` remis à `null` sur la caisse — elle peut être rouverte (nouvelle session) mais celle-ci reste figée définitivement (§7, aucun endpoint ne permet de la rouvrir ni de la modifier).
 
 ## 12. Caisse inactive
 
-`is_active=false` empêche `openSession()` (`422 CASH_REGISTER_INACTIVE`) mais ne touche à rien d'existant — son historique de sessions/mouvements reste consultable normalement.
+`actif=false` empêche `openSession()` (`422 CAISSE_INACTIVE`) mais ne touche à rien d'existant — son historique de sessions/mouvements reste consultable normalement.
 
 ## 13. Concurrence
 
@@ -86,13 +86,13 @@ Chaque écriture financière (`openSession`, `cashIn`, `cashOut`, `adjust`, `clo
 
 ## 14. Futur contrat avec Sales
 
-Non implémenté ici. `reference_type`/`reference_id` (morph, déjà en base sur `cash_movements`, jamais alimentés dans cette phase) sont prêts à recevoir une future `Sale` :
+Non implémenté ici. `reference_type`/`reference_id` (morph, déjà en base sur `mouvements_caisse`, jamais alimentés dans cette phase) sont prêts à recevoir une future `Sale` :
 
 ```
 Sale → Payment → CashRegisterService → CashMovement(type: sale, reference: Sale)
 ```
 
-Sales ne doit **jamais** faire `$session->balance += $amount` ni écrire directement dans `cash_movements` — seul `CashRegisterService` écrit le ledger (Phase 4.2 §39/§40), même règle que `docs/inventory.md` §14 pour `InventoryService`.
+Sales ne doit **jamais** faire `$session->balance += $amount` ni écrire directement dans `mouvements_caisse` — seul `CashRegisterService` écrit le ledger (Phase 4.2 §39/§40), même règle que `docs/inventory.md` §14 pour `InventoryService`.
 
 ## 15. Payment ≠ CashMovement
 
@@ -100,23 +100,23 @@ Cette phase ne crée ni modèle `Payment`, ni méthodes de paiement (cash/mobile
 
 ## 16. Isolation multi-tenant
 
-Trois niveaux de scoped binding : `{store} → {cashRegister}` (via `Store::cashRegisters()`, nouvelle relation) `→ {session}` (via `CashRegister::sessions()`) — chaque enfant scopé à son parent immédiat, même mécanisme que Catalog/Customers/Inventory. `CashMovement` n'est jamais un paramètre de route (pas de `{movement}` — pas de show/update/delete individuel), retrouvé uniquement via `cash_register_session_id` déjà validé par le binding scopé de `{session}`.
+Trois niveaux de scoped binding : `{store} → {cashRegister}` (via `Store::cashRegisters()`, nouvelle relation) `→ {session}` (via `CashRegister::sessions()`) — chaque enfant scopé à son parent immédiat, même mécanisme que Catalog/Customers/Inventory. `CashMovement` n'est jamais un paramètre de route (pas de `{movement}` — pas de show/update/delete individuel), retrouvé uniquement via `session_caisse_id` déjà validé par le binding scopé de `{session}`.
 
 ## 17. Permissions
 
-Cinq permissions, pas plus : `cash_register.view`, `cash_register.manage`, `cash_register.open`, `cash_register.close`, `cash_register.adjust`. `docs/permissions.md` §3 avait déjà anticipé `view`/`open`/`close`/`adjust` avant cette phase — `manage` (CRUD sur la définition d'une caisse) est la seule addition, justifiée par le besoin explicite du prompt (§29 : créer/modifier une caisse) que la liste d'origine n'avait pas anticipé (même précédent que `products.import` en Phase 3).
+Cinq permissions, pas plus : `caisse.voir`, `caisse.gerer`, `caisse.ouvrir`, `caisse.fermer`, `caisse.ajuster`. `docs/permissions.md` §3 avait déjà anticipé `view`/`ouverte`/`close`/`adjust` avant cette phase — `manage` (CRUD sur la définition d'une caisse) est la seule addition, justifiée par le besoin explicite du prompt (§29 : créer/modifier une caisse) que la liste d'origine n'avait pas anticipé (même précédent que `produits.importer` en Phase 3).
 
 | Rôle | Accès |
 |---|---|
-| owner / admin / manager | `view` + `manage` + `open` + `close` + `adjust` (accès complet) |
-| **cashier** | `view` + `open` + `close` + `adjust` — **pas** `manage` |
+| owner / admin / manager | `view` + `manage` + `ouverte` + `close` + `adjust` (accès complet) |
+| **cashier** | `view` + `ouverte` + `close` + `adjust` — **pas** `manage` |
 | employee | `view` uniquement |
 
 Le cas du caissier mérite une note : `docs/permissions.md` §3 dit littéralement *"Caissier : ..., cash_register.\*, ..."* — un wildcard écrit avant que `manage` existe. Lu aujourd'hui, `manage` est une tâche de configuration (définir les caisses physiques d'une boutique), pas une opération quotidienne de caissier (ouvrir/fermer son propre service, faire une entrée/sortie) — le caissier garde donc les quatre permissions opérationnelles que la note anticipait explicitement, pas celle qu'elle n'avait jamais envisagée.
 
 ## 18. FeatureGate
 
-Aucune nouvelle Feature : `cash_register` existait déjà depuis la Phase 2 (`FeatureSeeder`), incluse dans la quasi-totalité des domaines. Toutes les routes du module sont sous `feature:cash_register`.
+Aucune nouvelle Feature : `caisse` existait déjà depuis la Phase 2 (`FeatureSeeder`), incluse dans la quasi-totalité des domaines. Toutes les routes du module sont sous `feature:caisse`.
 
 ## 19. Ce qui est volontairement reporté
 

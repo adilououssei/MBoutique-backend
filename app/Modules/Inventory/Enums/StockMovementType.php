@@ -13,13 +13,13 @@ namespace App\Modules\Inventory\Enums;
 enum StockMovementType: string
 {
     case Initial = 'initial';
-    case Purchase = 'purchase';
-    case Sale = 'sale';
-    case ReturnIn = 'return_in';
-    case AdjustmentIn = 'adjustment_in';
-    case AdjustmentOut = 'adjustment_out';
-    case Stocktake = 'stocktake';
-    case Loss = 'loss';
+    case Purchase = 'achat';
+    case Sale = 'vente';
+    case ReturnIn = 'retour';
+    case AdjustmentIn = 'ajustement_entree';
+    case AdjustmentOut = 'ajustement_sortie';
+    case Stocktake = 'inventaire';
+    case Loss = 'perte';
 
     /**
      * Fixed-direction types only — Stocktake isn't one of these, its
@@ -31,7 +31,7 @@ enum StockMovementType: string
         return match ($this) {
             self::Initial, self::Purchase, self::ReturnIn, self::AdjustmentIn => true,
             self::Sale, self::AdjustmentOut, self::Loss => false,
-            self::Stocktake => throw new \LogicException('Stocktake has no fixed direction; see InventoryService::stocktake().'),
+            self::Stocktake => throw new \LogicException("L'inventaire n'a pas de sens fixe ; voir InventoryService::stocktake()."),
         };
     }
 

@@ -9,6 +9,7 @@ use App\Modules\Tenancy\Models\Store;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\Inventory\StockMovementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,7 +22,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * InventoryService creates these; no controller calls
  * StockMovement::create() directly.
  */
-#[Fillable(['stock_id', 'product_id', 'type', 'quantity', 'quantity_before', 'quantity_after', 'reference_type', 'reference_id', 'reason', 'metadata', 'created_by_user_id'])]
+#[Fillable(['stock_id', 'produit_id', 'type', 'quantite', 'quantite_avant', 'quantite_apres', 'reference_type', 'reference_id', 'motif', 'metadonnees', 'cree_par_id'])]
+#[Table('mouvements_stock')]
 class StockMovement extends Model
 {
     use BelongsToStore, HasFactory;
@@ -35,26 +37,26 @@ class StockMovement extends Model
     {
         return [
             'type' => StockMovementType::class,
-            'quantity' => 'decimal:3',
-            'quantity_before' => 'decimal:3',
-            'quantity_after' => 'decimal:3',
-            'metadata' => 'array',
+            'quantite' => 'decimal:3',
+            'quantite_avant' => 'decimal:3',
+            'quantite_apres' => 'decimal:3',
+            'metadonnees' => 'array',
         ];
     }
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'boutique_id');
     }
 
     public function stock(): BelongsTo
     {
-        return $this->belongsTo(Stock::class);
+        return $this->belongsTo(Stock::class, 'stock_id');
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'produit_id');
     }
 
     public function reference(): MorphTo
@@ -64,6 +66,6 @@ class StockMovement extends Model
 
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by_user_id');
+        return $this->belongsTo(User::class, 'cree_par_id');
     }
 }

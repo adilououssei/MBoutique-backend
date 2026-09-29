@@ -16,7 +16,7 @@ class CreateProductRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'slug' => $this->input('slug') ?: Str::slug((string) $this->input('name')),
+            'slug' => $this->input('slug') ?: Str::slug((string) $this->input('nom')),
         ]);
     }
 

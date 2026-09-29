@@ -17,7 +17,7 @@ class ImportProductsRequest extends FormRequest
             // `mimes` checks the actual file content (via fileinfo), not
             // just the extension — docs/catalog.md §"Import Excel":
             // "ne jamais faire confiance uniquement à l'extension".
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
+            'fichier' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
         ];
     }
 }

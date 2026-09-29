@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('stores/{store}')->group(function () {
-    Route::middleware('feature:sales')->prefix('sales')->name('sales.')->group(function () {
+Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques/{store}')->group(function () {
+    Route::middleware('feature:ventes')->prefix('ventes')->name('ventes.')->group(function () {
         Route::get('/', [SaleController::class, 'index'])->name('index');
-        Route::post('/checkout', [SaleController::class, 'checkout'])->name('checkout');
+        Route::post('/encaisser', [SaleController::class, 'checkout'])->name('encaisser');
         Route::get('/{sale}', [SaleController::class, 'show'])->name('show');
     });
 });

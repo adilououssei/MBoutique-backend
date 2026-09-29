@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('business_domains', function (Blueprint $table) {
+        Schema::create('domaines_activite', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('nom');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->string('icon')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('icone')->nullable();
+            $table->boolean('actif')->default(true);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('business_domains');
+        Schema::dropIfExists('domaines_activite');
     }
 };

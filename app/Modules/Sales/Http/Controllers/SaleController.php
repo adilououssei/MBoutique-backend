@@ -24,13 +24,13 @@ class SaleController extends ApiController
 
         $sales = Sale::query()
             ->with('customer')
-            ->when($request->filled('search'), fn ($q) => $q->where('reference', 'like', '%'.$request->string('search').'%'))
-            ->when($request->filled('from'), fn ($q) => $q->whereDate('sold_at', '>=', $request->date('from')))
-            ->when($request->filled('to'), fn ($q) => $q->whereDate('sold_at', '<=', $request->date('to')))
-            ->when($request->filled('payment_method'), fn ($q) => $q->where('payment_method', $request->string('payment_method')))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->latest('sold_at')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->when($request->filled('recherche'), fn ($q) => $q->where('reference', 'like', '%'.$request->string('recherche').'%'))
+            ->when($request->filled('du'), fn ($q) => $q->whereDate('vendue_le', '>=', $request->date('du')))
+            ->when($request->filled('au'), fn ($q) => $q->whereDate('vendue_le', '<=', $request->date('au')))
+            ->when($request->filled('mode_paiement'), fn ($q) => $q->where('mode_paiement', $request->string('mode_paiement')))
+            ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->string('statut')))
+            ->latest('vendue_le')
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(SaleResource::collection($sales));
     }
@@ -42,13 +42,13 @@ class SaleController extends ApiController
         try {
             $sale = $this->sales->checkout($store, $request->validated(), $request->user()?->id);
         } catch (NoOpenCashRegisterSessionException $e) {
-            return $this->error($e->getMessage(), [], 422, 'NO_OPEN_CASH_REGISTER_SESSION');
+            return $this->error($e->getMessage(), [], 422, 'AUCUNE_SESSION_CAISSE_OUVERTE');
         } catch (PricingModeNotAvailableException $e) {
-            return $this->error($e->getMessage(), [], 422, 'PRICING_MODE_NOT_AVAILABLE');
+            return $this->error($e->getMessage(), [], 422, 'MODE_PRIX_INDISPONIBLE');
         } catch (InvalidDiscountException $e) {
-            return $this->error($e->getMessage(), [], 422, 'INVALID_DISCOUNT');
+            return $this->error($e->getMessage(), [], 422, 'REMISE_INVALIDE');
         } catch (InsufficientStockException $e) {
-            return $this->error($e->getMessage(), [], 422, 'INSUFFICIENT_STOCK');
+            return $this->error($e->getMessage(), [], 422, 'STOCK_INSUFFISANT');
         }
 
         $sale->load(['customer', 'soldBy', 'items']);

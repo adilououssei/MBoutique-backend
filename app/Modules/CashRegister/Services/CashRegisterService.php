@@ -32,36 +32,36 @@ class CashRegisterService
         return DB::transaction(function () use ($register, $openingAmount, $userId, $reason) {
             $register = CashRegister::query()->whereKey($register->id)->lockForUpdate()->firstOrFail();
 
-            if (! $register->is_active) {
-                throw new CashRegisterInactiveException("La caisse \"{$register->name}\" est désactivée.");
+            if (! $register->actif) {
+                throw new CashRegisterInactiveException("La caisse \"{$register->nom}\" est désactivée.");
             }
 
-            if ($register->open_session_id !== null) {
-                throw new CashRegisterAlreadyOpenException("La caisse \"{$register->name}\" a déjà une session ouverte.");
+            if ($register->session_ouverte_id !== null) {
+                throw new CashRegisterAlreadyOpenException("La caisse \"{$register->nom}\" a déjà une session ouverte.");
             }
 
             $session = CashRegisterSession::create([
-                'cash_register_id' => $register->id,
-                'opened_by_user_id' => $userId,
-                'opened_at' => now(),
-                'opening_amount' => $openingAmount,
-                'status' => CashRegisterSessionStatus::Open,
+                'caisse_id' => $register->id,
+                'ouverte_par_id' => $userId,
+                'ouverte_le' => now(),
+                'montant_ouverture' => $openingAmount,
+                'statut' => CashRegisterSessionStatus::Open,
             ]);
 
             CashMovement::create([
-                'cash_register_session_id' => $session->id,
+                'session_caisse_id' => $session->id,
                 'type' => CashMovementType::Opening,
-                'amount' => $openingAmount,
-                'balance_before' => '0.00',
-                'balance_after' => $openingAmount,
-                'reason' => $reason,
-                'created_by_user_id' => $userId,
+                'montant' => $openingAmount,
+                'solde_avant' => '0.00',
+                'solde_apres' => $openingAmount,
+                'motif' => $reason,
+                'cree_par_id' => $userId,
             ]);
 
             // Deliberately a direct property write, not update(): this
             // pointer is never client-fillable (not in CashRegister's
             // #[Fillable]) — see docs/cash-register.md §"Une seule session ouverte".
-            $register->open_session_id = $session->id;
+            $register->session_ouverte_id = $session->id;
             $register->save();
 
             return $session;
@@ -106,7 +106,7 @@ class CashRegisterService
             // Lock ordering (register, then session) matches
             // openSession()'s ordering, avoiding a deadlock between the
             // two under concurrent open/close attempts on the same register.
-            $register = CashRegister::query()->whereKey($session->cash_register_id)->lockForUpdate()->firstOrFail();
+            $register = CashRegister::query()->whereKey($session->caisse_id)->lockForUpdate()->firstOrFail();
             $session = CashRegisterSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
 
             if (! $session->isOpen()) {
@@ -117,16 +117,16 @@ class CashRegisterService
             $difference = bcsub($actualClosingAmount, $expected, 2);
 
             $session->update([
-                'status' => CashRegisterSessionStatus::Closed,
-                'closed_by_user_id' => $userId,
-                'closed_at' => now(),
-                'expected_closing_amount' => $expected,
-                'actual_closing_amount' => $actualClosingAmount,
-                'difference' => $difference,
-                'closing_note' => $closingNote,
+                'statut' => CashRegisterSessionStatus::Closed,
+                'fermee_par_id' => $userId,
+                'fermee_le' => now(),
+                'montant_fermeture_attendu' => $expected,
+                'montant_fermeture_reel' => $actualClosingAmount,
+                'ecart' => $difference,
+                'note_fermeture' => $closingNote,
             ]);
 
-            $register->open_session_id = null;
+            $register->session_ouverte_id = null;
             $register->save();
 
             return $session;
@@ -156,15 +156,15 @@ class CashRegisterService
             }
 
             return CashMovement::create([
-                'cash_register_session_id' => $session->id,
+                'session_caisse_id' => $session->id,
                 'type' => $type,
-                'amount' => $delta,
-                'balance_before' => $before,
-                'balance_after' => $after,
-                'reason' => $reason,
+                'montant' => $delta,
+                'solde_avant' => $before,
+                'solde_apres' => $after,
+                'motif' => $reason,
                 'reference_type' => $reference?->getMorphClass(),
                 'reference_id' => $reference?->getKey(),
-                'created_by_user_id' => $userId,
+                'cree_par_id' => $userId,
             ]);
         });
     }
@@ -179,8 +179,8 @@ class CashRegisterService
     private function currentBalance(CashRegisterSession $session): string
     {
         return CashMovement::query()
-            ->where('cash_register_session_id', $session->id)
+            ->where('session_caisse_id', $session->id)
             ->latest('id')
-            ->value('balance_after') ?? '0.00';
+            ->value('solde_apres') ?? '0.00';
     }
 }

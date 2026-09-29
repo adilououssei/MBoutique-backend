@@ -18,26 +18,26 @@ class StoreFeaturesEndpointTest extends TestCase
 
     public function test_a_store_member_can_fetch_the_resolved_feature_list(): void
     {
-        $domain = BusinessDomain::factory()->create(['slug' => 'hair_salon', 'name' => 'Coiffure']);
+        $domain = BusinessDomain::factory()->create(['slug' => 'coiffure', 'nom' => 'Coiffure']);
         $enabled = Feature::factory()->create(['slug' => 'services']);
-        $disabled = Feature::factory()->create(['slug' => 'inventory']);
-        DomainFeature::create(['business_domain_id' => $domain->id, 'feature_id' => $enabled->id, 'is_default_enabled' => true]);
-        DomainFeature::create(['business_domain_id' => $domain->id, 'feature_id' => $disabled->id, 'is_default_enabled' => false]);
+        $disabled = Feature::factory()->create(['slug' => 'stock']);
+        DomainFeature::create(['domaine_activite_id' => $domain->id, 'fonctionnalite_id' => $enabled->id, 'active_par_defaut' => true]);
+        DomainFeature::create(['domaine_activite_id' => $domain->id, 'fonctionnalite_id' => $disabled->id, 'active_par_defaut' => false]);
 
-        $store = Store::factory()->create(['business_domain_id' => $domain->id]);
+        $store = Store::factory()->create(['domaine_activite_id' => $domain->id]);
         $user = User::factory()->create();
-        StoreUser::factory()->for($store)->for($user)->create(['status' => 'active']);
+        StoreUser::factory()->for($store)->for($user)->create(['statut' => 'actif']);
         Sanctum::actingAs($user);
 
-        $response = $this->getJson("/api/stores/{$store->id}/features");
+        $response = $this->getJson("/api/boutiques/{$store->id}/fonctionnalites");
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.domain.slug', 'hair_salon')
-            ->assertJsonPath('data.domain.name', 'Coiffure');
+            ->assertJsonPath('donnees.domaine.slug', 'coiffure')
+            ->assertJsonPath('donnees.domaine.nom', 'Coiffure');
 
-        $features = collect($response->json('data.features'))->keyBy('slug');
-        $this->assertTrue($features['services']['enabled']);
-        $this->assertFalse($features['inventory']['enabled']);
+        $features = collect($response->json('donnees.fonctionnalites'))->keyBy('slug');
+        $this->assertTrue($features['services']['activee']);
+        $this->assertFalse($features['stock']['activee']);
     }
 
     public function test_a_non_member_cannot_fetch_another_stores_feature_list(): void
@@ -46,6 +46,6 @@ class StoreFeaturesEndpointTest extends TestCase
         $stranger = User::factory()->create();
         Sanctum::actingAs($stranger);
 
-        $this->getJson("/api/stores/{$store->id}/features")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$store->id}/fonctionnalites")->assertStatus(404);
     }
 }

@@ -10,6 +10,6 @@ namespace App\Modules\Catalog\Enums;
  */
 enum PricingMode: string
 {
-    case Retail = 'retail';
-    case Wholesale = 'wholesale';
+    case Retail = 'detail';
+    case Wholesale = 'gros';
 }

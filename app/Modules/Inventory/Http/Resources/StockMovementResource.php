@@ -16,17 +16,17 @@ class StockMovementResource extends JsonResource
         return [
             'id' => $this->id,
             'type' => $this->type->value,
-            'quantity' => $this->quantity,
-            'quantity_before' => $this->quantity_before,
-            'quantity_after' => $this->quantity_after,
+            'quantite' => $this->quantite,
+            'quantite_avant' => $this->quantite_avant,
+            'quantite_apres' => $this->quantite_apres,
             'reference_type' => $this->reference_type,
             'reference_id' => $this->reference_id,
-            'reason' => $this->reason,
-            'created_by' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
+            'motif' => $this->motif,
+            'cree_par' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
                 'id' => $this->createdBy->id,
-                'name' => $this->createdBy->name,
+                'nom' => $this->createdBy->nom,
             ] : null),
-            'created_at' => $this->created_at,
+            'cree_le' => $this->created_at,
         ];
     }
 }

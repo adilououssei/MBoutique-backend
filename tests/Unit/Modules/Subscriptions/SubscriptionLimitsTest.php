@@ -27,9 +27,9 @@ class SubscriptionLimitsTest extends TestCase
     private function businessWithPlan(?int $maxStores): Business
     {
         $business = Business::factory()->create();
-        $plan = Plan::factory()->create(['max_stores' => $maxStores]);
-        $subscription = new Subscription(['plan_id' => $plan->id]);
-        $subscription->forceFill(['business_id' => $business->id]);
+        $plan = Plan::factory()->create(['max_boutiques' => $maxStores]);
+        $subscription = new Subscription(['forfait_id' => $plan->id]);
+        $subscription->forceFill(['entreprise_id' => $business->id]);
         $subscription->save();
 
         return $business;
@@ -38,7 +38,7 @@ class SubscriptionLimitsTest extends TestCase
     public function test_a_business_within_its_plans_store_limit_can_create_another(): void
     {
         $business = $this->businessWithPlan(maxStores: 2);
-        Store::factory()->create(['business_id' => $business->id]);
+        Store::factory()->create(['entreprise_id' => $business->id]);
 
         app(SubscriptionLimits::class)->assertCanCreateStore($business); // no exception
 
@@ -48,7 +48,7 @@ class SubscriptionLimitsTest extends TestCase
     public function test_a_business_at_its_plans_store_limit_cannot_create_another(): void
     {
         $business = $this->businessWithPlan(maxStores: 1);
-        Store::factory()->create(['business_id' => $business->id]);
+        Store::factory()->create(['entreprise_id' => $business->id]);
 
         $this->expectException(SubscriptionLimitExceededException::class);
 
@@ -58,7 +58,7 @@ class SubscriptionLimitsTest extends TestCase
     public function test_a_plan_with_an_unlimited_store_count_never_blocks_creation(): void
     {
         $business = $this->businessWithPlan(maxStores: null);
-        Store::factory()->count(5)->create(['business_id' => $business->id]);
+        Store::factory()->count(5)->create(['entreprise_id' => $business->id]);
 
         app(SubscriptionLimits::class)->assertCanCreateStore($business);
 
@@ -77,21 +77,21 @@ class SubscriptionLimitsTest extends TestCase
     public function test_the_http_endpoint_rejects_store_creation_beyond_the_plan_limit(): void
     {
         $business = $this->businessWithPlan(maxStores: 1);
-        Store::factory()->create(['business_id' => $business->id]);
+        Store::factory()->create(['entreprise_id' => $business->id]);
 
         $owner = User::factory()->create();
         BusinessUser::create([
-            'business_id' => $business->id,
-            'user_id' => $owner->id,
-            'role' => 'owner',
+            'entreprise_id' => $business->id,
+            'utilisateur_id' => $owner->id,
+            'role' => 'proprietaire',
         ]);
         Sanctum::actingAs($owner);
 
-        $response = $this->postJson("/api/businesses/{$business->id}/stores", [
-            'name' => 'Boutique de trop',
-            'business_domain_id' => BusinessDomain::factory()->create()->id,
+        $response = $this->postJson("/api/entreprises/{$business->id}/boutiques", [
+            'nom' => 'Boutique de trop',
+            'domaine_activite_id' => BusinessDomain::factory()->create()->id,
         ]);
 
-        $response->assertStatus(403)->assertJsonPath('code', 'SUBSCRIPTION_LIMIT_EXCEEDED');
+        $response->assertStatus(403)->assertJsonPath('code', 'LIMITE_ABONNEMENT_ATTEINTE');
     }
 }

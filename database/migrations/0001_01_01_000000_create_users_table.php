@@ -11,14 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        // `email`, `password`, `remember_token` et `email_verified_at` gardent
+        // leur nom anglais : le système d'authentification de Laravel (Hash,
+        // Password broker, Sanctum) s'appuie dessus. Les tables `sessions` et
+        // `password_reset_tokens` ci-dessous sont également des tables du
+        // framework et restent inchangées — voir docs/database.md §"Nommage".
+        Schema::create('utilisateurs', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('nom');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('phone')->nullable()->unique();
+            $table->string('telephone')->nullable()->unique();
             $table->string('password');
-            $table->string('status')->default('active');
+            $table->string('statut')->default('actif');
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
@@ -45,7 +50,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('utilisateurs');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

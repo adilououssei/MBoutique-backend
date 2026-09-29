@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * `->middleware(['auth:sanctum', 'store', 'feature:products'])` — must run
+ * `->middleware(['auth:sanctum', 'store', 'feature:produits'])` — must run
  * after 'store' (needs the resolved Store) and before any permission
  * check (docs/multi-tenancy.md §5 pipeline): whether the feature exists
  * for this store is a different question from who may use it, and is
@@ -24,10 +24,10 @@ class EnsureFeatureEnabled
     {
         $store = $request->route('store');
 
-        abort_unless($store instanceof Store, 500, 'EnsureFeatureEnabled requires a resolved {store} route parameter.');
+        abort_unless($store instanceof Store, 500, 'EnsureFeatureEnabled nécessite un paramètre de route {store} résolu.');
 
         if (! $this->featureGate->allows($store, $featureSlug)) {
-            return ApiResponse::error('This feature is not available for this store.', [], 403, 'FEATURE_DISABLED');
+            return ApiResponse::error("Cette fonctionnalité n'est pas disponible pour cette boutique.", [], 403, 'FONCTIONNALITE_DESACTIVEE');
         }
 
         return $next($request);

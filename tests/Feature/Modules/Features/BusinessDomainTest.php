@@ -21,19 +21,19 @@ class BusinessDomainTest extends TestCase
 
     public function test_a_business_domain_can_be_created(): void
     {
-        $domain = BusinessDomain::factory()->create(['name' => 'Coiffure', 'slug' => 'hair_salon']);
+        $domain = BusinessDomain::factory()->create(['nom' => 'Coiffure', 'slug' => 'coiffure']);
 
-        $this->assertDatabaseHas('business_domains', ['slug' => 'hair_salon', 'is_active' => true]);
-        $this->assertTrue($domain->is_active);
+        $this->assertDatabaseHas('domaines_activite', ['slug' => 'coiffure', 'actif' => true]);
+        $this->assertTrue($domain->actif);
     }
 
     public function test_a_business_domain_can_be_deactivated(): void
     {
         $domain = BusinessDomain::factory()->create();
 
-        $domain->update(['is_active' => false]);
+        $domain->update(['actif' => false]);
 
-        $this->assertFalse($domain->fresh()->is_active);
+        $this->assertFalse($domain->fresh()->actif);
     }
 
     public function test_an_inactive_domain_cannot_be_selected_for_a_new_store(): void
@@ -41,14 +41,14 @@ class BusinessDomainTest extends TestCase
         $inactiveDomain = BusinessDomain::factory()->inactive()->create();
         $owner = User::factory()->create();
         Sanctum::actingAs($owner);
-        $businessId = $this->postJson('/api/businesses', ['name' => 'Boutique'])->json('data.id');
+        $businessId = $this->postJson('/api/entreprises', ['nom' => 'Boutique'])->json('donnees.id');
 
-        $response = $this->postJson("/api/businesses/{$businessId}/stores", [
-            'name' => 'Ma boutique',
-            'business_domain_id' => $inactiveDomain->id,
+        $response = $this->postJson("/api/entreprises/{$businessId}/boutiques", [
+            'nom' => 'Ma boutique',
+            'domaine_activite_id' => $inactiveDomain->id,
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('business_domain_id');
+        $response->assertStatus(422)->assertJsonValidationErrors('domaine_activite_id', 'erreurs');
     }
 
     public function test_an_active_domain_can_be_selected_for_a_new_store(): void
@@ -56,11 +56,11 @@ class BusinessDomainTest extends TestCase
         $domain = BusinessDomain::factory()->create();
         $owner = User::factory()->create();
         Sanctum::actingAs($owner);
-        $businessId = $this->postJson('/api/businesses', ['name' => 'Boutique'])->json('data.id');
+        $businessId = $this->postJson('/api/entreprises', ['nom' => 'Boutique'])->json('donnees.id');
 
-        $response = $this->postJson("/api/businesses/{$businessId}/stores", [
-            'name' => 'Ma boutique',
-            'business_domain_id' => $domain->id,
+        $response = $this->postJson("/api/entreprises/{$businessId}/boutiques", [
+            'nom' => 'Ma boutique',
+            'domaine_activite_id' => $domain->id,
         ]);
 
         $response->assertStatus(201);

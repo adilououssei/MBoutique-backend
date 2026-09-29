@@ -11,6 +11,6 @@ namespace App\Modules\Sales\Enums;
  */
 enum SaleStatus: string
 {
-    case Completed = 'completed';
-    case Cancelled = 'cancelled';
+    case Completed = 'terminee';
+    case Cancelled = 'annulee';
 }

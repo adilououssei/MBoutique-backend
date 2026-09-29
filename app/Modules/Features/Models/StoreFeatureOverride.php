@@ -4,6 +4,7 @@ namespace App\Modules\Features\Models;
 
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,7 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * never read or write Store B's overrides (docs/features.md §5,
  * docs/multi-tenancy.md).
  */
-#[Fillable(['store_id', 'feature_id', 'is_enabled'])]
+#[Fillable(['boutique_id', 'fonctionnalite_id', 'activee'])]
+#[Table('fonctionnalites_boutique')]
 class StoreFeatureOverride extends Model
 {
     use BelongsToStore;
@@ -22,12 +24,12 @@ class StoreFeatureOverride extends Model
     protected function casts(): array
     {
         return [
-            'is_enabled' => 'boolean',
+            'activee' => 'boolean',
         ];
     }
 
     public function feature(): BelongsTo
     {
-        return $this->belongsTo(Feature::class);
+        return $this->belongsTo(Feature::class, 'fonctionnalite_id');
     }
 }

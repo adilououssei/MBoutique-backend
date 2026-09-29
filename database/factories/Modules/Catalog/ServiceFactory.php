@@ -19,14 +19,14 @@ class ServiceFactory extends Factory
         $name = fake()->unique()->words(2, true);
 
         return [
-            'store_id' => Store::factory(),
-            'category_id' => null,
-            'name' => $name,
+            'boutique_id' => Store::factory(),
+            'categorie_id' => null,
+            'nom' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
             'description' => fake()->optional()->sentence(),
-            'price' => fake()->randomFloat(2, 500, 10000),
-            'duration_minutes' => fake()->randomElement([null, 15, 30, 45, 60]),
-            'is_active' => true,
+            'prix' => fake()->randomFloat(2, 500, 10000),
+            'duree_minutes' => fake()->randomElement([null, 15, 30, 45, 60]),
+            'actif' => true,
         ];
     }
 }

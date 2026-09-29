@@ -34,7 +34,7 @@ class StoreService
             // business_id is deliberately not $fillable — see the
             // identical note in BusinessService::createForOwner.
             $store = new Store($data);
-            $store->forceFill(['business_id' => $business->id]);
+            $store->forceFill(['entreprise_id' => $business->id]);
             $store->save();
 
             $this->roleProvisioner->provisionFor($store);
@@ -67,8 +67,8 @@ class StoreService
 
         try {
             StoreUser::updateOrCreate(
-                ['store_id' => $store->id, 'user_id' => $user->id],
-                ['status' => StoreUserStatus::Active, 'joined_at' => now()],
+                ['boutique_id' => $store->id, 'utilisateur_id' => $user->id],
+                ['statut' => StoreUserStatus::Active, 'rejoint_le' => now()],
             );
 
             $user->assignRole(StoreRole::forBusinessRole($businessRole));

@@ -15,15 +15,15 @@ class CustomerResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'phone' => $this->phone,
+            'nom' => $this->nom,
+            'telephone' => $this->telephone,
             'email' => $this->email,
-            'company_name' => $this->company_name,
-            'address' => $this->address,
+            'nom_entreprise' => $this->nom_entreprise,
+            'adresse' => $this->adresse,
             'notes' => $this->notes,
-            'is_active' => $this->is_active,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'actif' => $this->actif,
+            'cree_le' => $this->created_at,
+            'modifie_le' => $this->updated_at,
         ];
     }
 }

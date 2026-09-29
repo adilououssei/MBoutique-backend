@@ -18,15 +18,15 @@ class FeatureFactory extends Factory
         $name = fake()->unique()->words(2, true);
 
         return [
-            'name' => $name,
+            'nom' => $name,
             'slug' => Str::slug($name, '_'),
             'description' => fake()->sentence(),
-            'is_active' => true,
+            'actif' => true,
         ];
     }
 
     public function inactive(): static
     {
-        return $this->state(['is_active' => false]);
+        return $this->state(['actif' => false]);
     }
 }

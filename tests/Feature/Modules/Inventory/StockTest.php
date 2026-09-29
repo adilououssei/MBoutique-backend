@@ -16,163 +16,163 @@ class StockTest extends TestCase
 
     public function test_a_product_with_no_stock_recorded_yet_reads_as_zero_not_404(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $product = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
 
-        $response = $this->getJson("/api/stores/{$store->id}/inventory/{$product->id}");
+        $response = $this->getJson("/api/boutiques/{$store->id}/stocks/{$product->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.quantity', '0.000')
-            ->assertJsonPath('data.minimum_quantity', null)
-            ->assertJsonPath('data.is_low_stock', false)
-            ->assertJsonPath('data.product.id', $product->id);
+            ->assertJsonPath('donnees.quantite', '0.000')
+            ->assertJsonPath('donnees.quantite_minimum', null)
+            ->assertJsonPath('donnees.stock_faible', false)
+            ->assertJsonPath('donnees.produit.id', $product->id);
 
-        $this->assertDatabaseMissing('stocks', ['product_id' => $product->id]);
+        $this->assertDatabaseMissing('stocks', ['produit_id' => $product->id]);
     }
 
     public function test_current_stock_reflects_movements(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $product = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$product->id}/movements", ['type' => 'initial', 'quantity' => 100, 'minimum_quantity' => 10]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$product->id}/mouvements", ['type' => 'initial', 'quantite' => 100, 'quantite_minimum' => 10]);
 
-        $response = $this->getJson("/api/stores/{$store->id}/inventory/{$product->id}");
+        $response = $this->getJson("/api/boutiques/{$store->id}/stocks/{$product->id}");
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.quantity', '100.000')
-            ->assertJsonPath('data.minimum_quantity', '10.000')
-            ->assertJsonPath('data.is_low_stock', false);
+            ->assertJsonPath('donnees.quantite', '100.000')
+            ->assertJsonPath('donnees.quantite_minimum', '10.000')
+            ->assertJsonPath('donnees.stock_faible', false);
     }
 
     public function test_is_low_stock_is_true_when_quantity_is_at_or_below_the_minimum(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $product = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$product->id}/movements", ['type' => 'initial', 'quantity' => 10, 'minimum_quantity' => 10]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$product->id}/mouvements", ['type' => 'initial', 'quantite' => 10, 'quantite_minimum' => 10]);
 
-        $this->getJson("/api/stores/{$store->id}/inventory/{$product->id}")->assertJsonPath('data.is_low_stock', true);
+        $this->getJson("/api/boutiques/{$store->id}/stocks/{$product->id}")->assertJsonPath('donnees.stock_faible', true);
     }
 
     public function test_owner_can_update_the_minimum_quantity_threshold(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $product = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$product->id}/movements", ['type' => 'initial', 'quantity' => 100]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$product->id}/mouvements", ['type' => 'initial', 'quantite' => 100]);
 
-        $response = $this->putJson("/api/stores/{$store->id}/inventory/{$product->id}", ['minimum_quantity' => 25]);
+        $response = $this->putJson("/api/boutiques/{$store->id}/stocks/{$product->id}", ['quantite_minimum' => 25]);
 
-        $response->assertStatus(200)->assertJsonPath('data.minimum_quantity', '25.000');
-        $this->assertSame('100.000', Stock::where('product_id', $product->id)->first()->quantity);
+        $response->assertStatus(200)->assertJsonPath('donnees.quantite_minimum', '25.000');
+        $this->assertSame('100.000', Stock::where('produit_id', $product->id)->first()->quantite);
     }
 
     public function test_the_threshold_cannot_be_set_before_stock_is_initialized(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $product = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
 
-        $this->putJson("/api/stores/{$store->id}/inventory/{$product->id}", ['minimum_quantity' => 25])
-            ->assertStatus(404)->assertJsonPath('code', 'STOCK_NOT_INITIALIZED');
+        $this->putJson("/api/boutiques/{$store->id}/stocks/{$product->id}", ['quantite_minimum' => 25])
+            ->assertStatus(404)->assertJsonPath('code', 'STOCK_NON_INITIALISE');
     }
 
     public function test_updating_the_threshold_never_changes_the_quantity(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $product = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$product->id}/movements", ['type' => 'initial', 'quantity' => 100]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$product->id}/mouvements", ['type' => 'initial', 'quantite' => 100]);
 
-        $this->putJson("/api/stores/{$store->id}/inventory/{$product->id}", ['quantity' => 999999, 'minimum_quantity' => 5])
+        $this->putJson("/api/boutiques/{$store->id}/stocks/{$product->id}", ['quantite' => 999999, 'quantite_minimum' => 5])
             ->assertStatus(200);
 
-        $this->assertSame('100.000', Stock::where('product_id', $product->id)->first()->quantity);
+        $this->assertSame('100.000', Stock::where('produit_id', $product->id)->first()->quantite);
     }
 
     // --- List / search / pagination / low_stock filter ---
 
     public function test_list_only_includes_products_with_a_recorded_stock(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
-        $withStock = Product::factory()->for($store)->create(['name' => 'Riz 25kg']);
-        Product::factory()->for($store)->create(['name' => 'Sans stock encore']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
+        $withStock = Product::factory()->for($store)->create(['nom' => 'Riz 25kg']);
+        Product::factory()->for($store)->create(['nom' => 'Sans stock encore']);
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$withStock->id}/movements", ['type' => 'initial', 'quantity' => 100]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$withStock->id}/mouvements", ['type' => 'initial', 'quantite' => 100]);
 
-        $response = $this->getJson("/api/stores/{$store->id}/inventory");
+        $response = $this->getJson("/api/boutiques/{$store->id}/stocks");
 
-        $response->assertStatus(200)->assertJsonCount(1, 'data')->assertJsonPath('data.0.product.id', $withStock->id);
+        $response->assertStatus(200)->assertJsonCount(1, 'donnees')->assertJsonPath('donnees.0.produit.id', $withStock->id);
     }
 
     public function test_search_matches_the_product_name(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
-        $rice = Product::factory()->for($store)->create(['name' => 'Riz 25kg']);
-        $oil = Product::factory()->for($store)->create(['name' => 'Huile 5L']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
+        $rice = Product::factory()->for($store)->create(['nom' => 'Riz 25kg']);
+        $oil = Product::factory()->for($store)->create(['nom' => 'Huile 5L']);
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$rice->id}/movements", ['type' => 'initial', 'quantity' => 100]);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$oil->id}/movements", ['type' => 'initial', 'quantity' => 50]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$rice->id}/mouvements", ['type' => 'initial', 'quantite' => 100]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$oil->id}/mouvements", ['type' => 'initial', 'quantite' => 50]);
 
-        $this->getJson("/api/stores/{$store->id}/inventory?search=riz")
-            ->assertStatus(200)->assertJsonCount(1, 'data')->assertJsonPath('data.0.product.id', $rice->id);
+        $this->getJson("/api/boutiques/{$store->id}/stocks?recherche=riz")
+            ->assertStatus(200)->assertJsonCount(1, 'donnees')->assertJsonPath('donnees.0.produit.id', $rice->id);
     }
 
     public function test_low_stock_filter_returns_only_products_at_or_below_their_minimum(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $low = Product::factory()->for($store)->create();
         $healthy = Product::factory()->for($store)->create();
         Sanctum::actingAs($owner);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$low->id}/movements", ['type' => 'initial', 'quantity' => 5, 'minimum_quantity' => 10]);
-        $this->postJson("/api/stores/{$store->id}/inventory/{$healthy->id}/movements", ['type' => 'initial', 'quantity' => 50, 'minimum_quantity' => 10]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$low->id}/mouvements", ['type' => 'initial', 'quantite' => 5, 'quantite_minimum' => 10]);
+        $this->postJson("/api/boutiques/{$store->id}/stocks/{$healthy->id}/mouvements", ['type' => 'initial', 'quantite' => 50, 'quantite_minimum' => 10]);
 
-        $response = $this->getJson("/api/stores/{$store->id}/inventory?low_stock=true");
+        $response = $this->getJson("/api/boutiques/{$store->id}/stocks?stock_faible=true");
 
-        $response->assertStatus(200)->assertJsonCount(1, 'data')->assertJsonPath('data.0.product.id', $low->id);
+        $response->assertStatus(200)->assertJsonCount(1, 'donnees')->assertJsonPath('donnees.0.produit.id', $low->id);
     }
 
     public function test_list_is_paginated(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
         $products = Product::factory()->for($store)->count(15)->create();
         Sanctum::actingAs($owner);
         foreach ($products as $product) {
-            $this->postJson("/api/stores/{$store->id}/inventory/{$product->id}/movements", ['type' => 'initial', 'quantity' => 10]);
+            $this->postJson("/api/boutiques/{$store->id}/stocks/{$product->id}/mouvements", ['type' => 'initial', 'quantite' => 10]);
         }
 
-        $response = $this->getJson("/api/stores/{$store->id}/inventory?per_page=10");
+        $response = $this->getJson("/api/boutiques/{$store->id}/stocks?par_page=10");
 
-        $response->assertStatus(200)->assertJsonCount(10, 'data')->assertJsonPath('meta.total', 15);
+        $response->assertStatus(200)->assertJsonCount(10, 'donnees')->assertJsonPath('meta.total', 15);
     }
 
     // --- Isolation ---
 
     public function test_a_member_of_another_store_cannot_read_this_products_stock(): void
     {
-        ['owner' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['produits', 'stock']);
         $productA = Product::factory()->for($storeA)->create();
         Sanctum::actingAs($ownerA);
-        $this->postJson("/api/stores/{$storeA->id}/inventory/{$productA->id}/movements", ['type' => 'initial', 'quantity' => 100]);
+        $this->postJson("/api/boutiques/{$storeA->id}/stocks/{$productA->id}/mouvements", ['type' => 'initial', 'quantite' => 100]);
 
-        ['owner' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['products', 'inventory']);
+        ['proprietaire' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['produits', 'stock']);
         Sanctum::actingAs($ownerB);
 
-        $this->getJson("/api/stores/{$storeB->id}/inventory/{$productA->id}")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$storeB->id}/stocks/{$productA->id}")->assertStatus(404);
     }
 
     // --- Services excluded ---
 
     public function test_a_service_cannot_be_used_as_an_inventory_product(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products', 'services', 'inventory']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'services', 'stock']);
         $service = Service::factory()->for($store)->create();
         Sanctum::actingAs($owner);
 
         // {product} is scoped through Store::products(), which a Service
         // id simply never matches — same 404 as a cross-store product.
-        $this->getJson("/api/stores/{$store->id}/inventory/{$service->id}")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$store->id}/stocks/{$service->id}")->assertStatus(404);
     }
 }

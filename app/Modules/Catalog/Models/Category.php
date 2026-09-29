@@ -17,13 +17,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * store, not one per catalog type, per the Phase 3 brief. See
  * docs/catalog.md.
  */
-#[Fillable(['name', 'slug', 'description', 'is_active'])]
+#[Fillable(['nom', 'slug', 'description', 'actif'])]
 class Category extends Model
 {
     use BelongsToStore, HasFactory, SoftDeletes;
 
     protected $attributes = [
-        'is_active' => true,
+        'actif' => true,
     ];
 
     protected static function newFactory(): CategoryFactory
@@ -34,22 +34,22 @@ class Category extends Model
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'actif' => 'boolean',
         ];
     }
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'boutique_id');
     }
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'categorie_id');
     }
 
     public function services(): HasMany
     {
-        return $this->hasMany(Service::class);
+        return $this->hasMany(Service::class, 'categorie_id');
     }
 }

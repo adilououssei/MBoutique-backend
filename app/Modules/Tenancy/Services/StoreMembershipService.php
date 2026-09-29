@@ -27,23 +27,23 @@ class StoreMembershipService
     {
         return DB::transaction(function () use ($store, $targetUser, $role, $actor) {
             $storeUser = StoreUser::withoutStoreScope()
-                ->where('store_id', $store->id)
-                ->where('user_id', $targetUser->id)
+                ->where('boutique_id', $store->id)
+                ->where('utilisateur_id', $targetUser->id)
                 ->first();
 
             if ($storeUser) {
                 $storeUser->update([
-                    'status' => StoreUserStatus::Active,
-                    'joined_at' => $storeUser->joined_at ?? now(),
+                    'statut' => StoreUserStatus::Active,
+                    'rejoint_le' => $storeUser->rejoint_le ?? now(),
                 ]);
             } else {
                 $storeUser = StoreUser::create([
-                    'store_id' => $store->id,
-                    'user_id' => $targetUser->id,
-                    'status' => StoreUserStatus::Active,
-                    'invited_by_user_id' => $actor->id,
-                    'invited_at' => now(),
-                    'joined_at' => now(),
+                    'boutique_id' => $store->id,
+                    'utilisateur_id' => $targetUser->id,
+                    'statut' => StoreUserStatus::Active,
+                    'invite_par_id' => $actor->id,
+                    'invite_le' => now(),
+                    'rejoint_le' => now(),
                 ]);
             }
 
@@ -56,10 +56,10 @@ class StoreMembershipService
     public function removeMember(Store $store, User $targetUser): void
     {
         DB::transaction(function () use ($store, $targetUser) {
-            StoreUser::where('store_id', $store->id)
-                ->where('user_id', $targetUser->id)
+            StoreUser::where('boutique_id', $store->id)
+                ->where('utilisateur_id', $targetUser->id)
                 ->firstOrFail()
-                ->update(['status' => StoreUserStatus::Revoked]);
+                ->update(['statut' => StoreUserStatus::Revoked]);
 
             $targetUser->syncRoles([]);
         });

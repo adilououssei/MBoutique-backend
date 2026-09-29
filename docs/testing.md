@@ -1,15 +1,15 @@
 # Stratégie de tests
 
-> **Mise à jour (implémentation Phase 1)** : la stratégie ci-dessous est maintenant appliquée concrètement — 43 tests dans `tests/Feature/Modules/{Auth,Tenancy}/` et `tests/Unit/Shared/`, tous verts (`php artisan test`). En particulier `tests/Feature/Modules/Tenancy/MultiTenantIsolationTest.php` couvre exactement les 3 scénarios critiques de ce document (accès direct, `store_id` mass-assigné, référence à une ressource d'un autre store), et `tests/Unit/Shared/BelongsToStoreTest.php`/`TenantScopedRulesTest.php` prouvent directement les Couches 2 et 5 de `docs/multi-tenancy.md`.
+> **Mise à jour (implémentation Phase 1)** : la stratégie ci-dessous est maintenant appliquée concrètement — 43 tests dans `tests/Feature/Modules/{Auth,Tenancy}/` et `tests/Unit/Shared/`, tous verts (`php artisan test`). En particulier `tests/Feature/Modules/Tenancy/MultiTenantIsolationTest.php` couvre exactement les 3 scénarios critiques de ce document (accès direct, `boutique_id` mass-assigné, référence à une ressource d'un autre store), et `tests/Unit/Shared/BelongsToStoreTest.php`/`TenantScopedRulesTest.php` prouvent directement les Couches 2 et 5 de `docs/multi-tenancy.md`.
 >
-> **Mise à jour (implémentation Phase 2)** : 76 tests au total. Ajoutés : `tests/Feature/Modules/Features/*` (domaines, features, isolation multi-tenant des overrides, endpoint `/stores/{store}/features`, indépendance Feature/Permission via une route de test dédiée), `tests/Unit/Modules/Features/FeatureGateTest.php` (résolution complète : domaine, override, dépendances, plan), `tests/Unit/Modules/Subscriptions/SubscriptionLimitsTest.php`.
+> **Mise à jour (implémentation Phase 2)** : 76 tests au total. Ajoutés : `tests/Feature/Modules/Features/*` (domaines, features, isolation multi-tenant des overrides, endpoint `/boutiques/{store}/fonctionnalites`, indépendance Feature/Permission via une route de test dédiée), `tests/Unit/Modules/Features/FeatureGateTest.php` (résolution complète : domaine, override, dépendances, plan), `tests/Unit/Modules/Subscriptions/SubscriptionLimitsTest.php`.
 
 ## 1. Niveaux de test
 
 | Niveau | Portée | Exemple |
 |---|---|---|
 | Unit | Une classe isolée, sans framework HTTP ni DB si possible | `FeatureGate::resolve()` avec des objets en mémoire |
-| Feature/API | Une route complète, DB de test (SQLite en mémoire ou MySQL de test), assertions sur la réponse JSON | `POST /api/stores/{store}/products` retourne 201 et la ressource attendue |
+| Feature/API | Une route complète, DB de test (SQLite en mémoire ou MySQL de test), assertions sur la réponse JSON | `POST /api/boutiques/{store}/produits` retourne 201 et la ressource attendue |
 | Autorisation | Vérifie qu'un utilisateur sans la permission/le rôle requis reçoit 403 | Voir §3 |
 | **Isolation multi-tenant** | Vérifie qu'un utilisateur d'un store ne peut jamais atteindre les données d'un autre store | Voir §2, catégorie de test **obligatoire** pour tout nouvel endpoint |
 
@@ -29,16 +29,16 @@ public function test_user_cannot_access_another_stores_resource(): void
     $resourceInStoreB = Product::factory()->for($storeB)->create();
 
     $response = $this->actingAs($userA)
-        ->getJson("/api/stores/{$storeB->id}/products/{$resourceInStoreB->id}");
+        ->getJson("/api/boutiques/{$storeB->id}/produits/{$resourceInStoreB->id}");
 
     $response->assertStatus(403); // ou 404 selon la décision prise en multi-tenancy.md §2
 }
 ```
 
 Variantes obligatoires du même principe :
-- Lister une collection (`GET /stores/{storeB}/products`) avec le token de userA qui n'est pas membre de storeB → refusé avant même d'atteindre la logique de liste.
+- Lister une collection (`GET /boutiques/{storeB}/produits`) avec le token de userA qui n'est pas membre de storeB → refusé avant même d'atteindre la logique de liste.
 - userA est membre de storeB mais avec `status = revoked` → refusé.
-- userA est membre actif de storeB mais sans la permission `products.view` → 403 (test de permission, distinct du test d'isolation, mais souvent écrit côte à côte).
+- userA est membre actif de storeB mais sans la permission `produits.voir` → 403 (test de permission, distinct du test d'isolation, mais souvent écrit côte à côte).
 - Tentative de update/delete sur une ressource d'un store dont on n'est pas membre → refusé au même titre que la lecture.
 
 Cette suite de tests doit être écrite **dès le premier module métier implémenté** (probablement `Tenancy` + un module simple comme `Customers`), pour valider le pipeline middleware/scope/policy décrit dans [multi-tenancy.md](multi-tenancy.md) sur un cas réel avant de le répliquer partout.
@@ -54,7 +54,7 @@ public function test_cannot_create_sale_referencing_a_customer_from_another_stor
     $customerInStoreB = Customer::factory()->for(Store::factory())->create();
 
     $response = $this->actingAs($userMemberOfStoreA)
-        ->postJson("/api/stores/{$storeA->id}/sales", [
+        ->postJson("/api/boutiques/{$storeA->id}/ventes", [
             'customer_id' => $customerInStoreB->id,
             'items' => [...],
         ]);
@@ -71,7 +71,7 @@ public function test_cannot_create_sale_referencing_a_customer_from_another_stor
 public function test_cashier_cannot_delete_products(): void
 {
     // utilisateur avec le rôle "Caissier" (sans products.delete) sur ce store
-    $response = $this->actingAs($cashier)->deleteJson(".../products/{$product->id}");
+    $response = $this->actingAs($cashier)->deleteJson(".../produits/{$product->id}");
     $response->assertStatus(403);
 }
 ```
@@ -93,7 +93,7 @@ Recommandation : MySQL de test (pas SQLite) dès que possible, pour que les cont
 En plus des tests d'isolation et d'autorisation standards, le module `Sales` a deux catégories de test propres à son caractère transactionnel (voir [database.md](database.md) §11/§7) :
 
 - **Atomicité** : une vente qui échoue à mi-parcours (ex: stock insuffisant détecté sur le deuxième article du panier) ne doit laisser **aucune trace** en base — ni `Sale`, ni `SaleItem` déjà insérés, ni `StockMovement` du premier article. Test : provoquer l'échec, puis vérifier `Sale::count()` inchangé et `StockMovement::count()` inchangé.
-- **Idempotence** : deux requêtes de création identiques (même `idempotency_key`) ne doivent produire qu'une seule `Sale` et qu'un seul jeu de `StockMovement` — test : appeler l'endpoint deux fois avec le même payload/`idempotency_key`, vérifier `Sale::count() === 1`.
+- **Idempotence** : deux requêtes de création identiques (même `cle_idempotence`) ne doivent produire qu'une seule `Sale` et qu'un seul jeu de `StockMovement` — test : appeler l'endpoint deux fois avec le même payload/`cle_idempotence`, vérifier `Sale::count() === 1`.
 
 ## 6. CI
 

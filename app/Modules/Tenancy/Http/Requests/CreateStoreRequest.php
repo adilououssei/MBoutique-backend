@@ -15,17 +15,17 @@ class CreateStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('stores', 'slug')],
+            'nom' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('boutiques', 'slug')],
             // A domain must be selectable (active) to be chosen for a new
             // store — see docs/feature-gate.md: this is the ONLY place
-            // BusinessDomain.is_active is enforced, deliberately not at
+            // BusinessDomain.actif is enforced, deliberately not at
             // FeatureGate resolution time for stores that already exist.
-            'business_domain_id' => ['required', Rule::exists('business_domains', 'id')->where('is_active', true)],
-            'address' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:32'],
-            'currency' => ['nullable', 'string', 'size:3'],
-            'timezone' => ['nullable', 'string', 'max:64'],
+            'domaine_activite_id' => ['required', Rule::exists('domaines_activite', 'id')->where('actif', true)],
+            'adresse' => ['nullable', 'string', 'max:255'],
+            'telephone' => ['nullable', 'string', 'max:32'],
+            'devise' => ['nullable', 'string', 'size:3'],
+            'fuseau_horaire' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

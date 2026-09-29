@@ -25,19 +25,19 @@ class MultiTenantIsolationTest extends TestCase
     {
         $userA = User::factory()->create();
         Sanctum::actingAs($userA);
-        $businessAId = $this->postJson('/api/businesses', ['name' => 'Business A'])->json('data.id');
-        $storeAId = $this->postJson("/api/businesses/{$businessAId}/stores", [
-            'name' => 'Store A',
-            'business_domain_id' => BusinessDomain::factory()->create()->id,
-        ])->json('data.id');
+        $businessAId = $this->postJson('/api/entreprises', ['nom' => 'Business A'])->json('donnees.id');
+        $storeAId = $this->postJson("/api/entreprises/{$businessAId}/boutiques", [
+            'nom' => 'Store A',
+            'domaine_activite_id' => BusinessDomain::factory()->create()->id,
+        ])->json('donnees.id');
 
         $userB = User::factory()->create();
         Sanctum::actingAs($userB);
-        $businessBId = $this->postJson('/api/businesses', ['name' => 'Business B'])->json('data.id');
-        $storeBId = $this->postJson("/api/businesses/{$businessBId}/stores", [
-            'name' => 'Store B',
-            'business_domain_id' => BusinessDomain::factory()->create()->id,
-        ])->json('data.id');
+        $businessBId = $this->postJson('/api/entreprises', ['nom' => 'Business B'])->json('donnees.id');
+        $storeBId = $this->postJson("/api/entreprises/{$businessBId}/boutiques", [
+            'nom' => 'Store B',
+            'domaine_activite_id' => BusinessDomain::factory()->create()->id,
+        ])->json('donnees.id');
 
         return compact('userA', 'storeAId', 'userB', 'storeBId');
     }
@@ -47,7 +47,7 @@ class MultiTenantIsolationTest extends TestCase
         ['userA' => $userA, 'storeBId' => $storeBId] = $this->createTwoIsolatedStores();
 
         Sanctum::actingAs($userA);
-        $this->getJson("/api/stores/{$storeBId}")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$storeBId}")->assertStatus(404);
     }
 
     public function test_user_a_cannot_list_members_of_store_b(): void
@@ -55,7 +55,7 @@ class MultiTenantIsolationTest extends TestCase
         ['userA' => $userA, 'storeBId' => $storeBId] = $this->createTwoIsolatedStores();
 
         Sanctum::actingAs($userA);
-        $this->getJson("/api/stores/{$storeBId}/members")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$storeBId}/membres")->assertStatus(404);
     }
 
     public function test_user_a_cannot_add_a_member_to_store_b(): void
@@ -64,9 +64,9 @@ class MultiTenantIsolationTest extends TestCase
         $victim = User::factory()->create();
 
         Sanctum::actingAs($userA);
-        $this->postJson("/api/stores/{$storeBId}/members", [
+        $this->postJson("/api/boutiques/{$storeBId}/membres", [
             'email' => $victim->email,
-            'role' => 'owner',
+            'role' => 'proprietaire',
         ])->assertStatus(404);
     }
 
@@ -75,10 +75,10 @@ class MultiTenantIsolationTest extends TestCase
         ['userA' => $userA, 'storeAId' => $storeAId] = $this->createTwoIsolatedStores();
 
         Sanctum::actingAs($userA);
-        $response = $this->getJson('/api/stores');
+        $response = $this->getJson('/api/boutiques');
 
-        $response->assertStatus(200)->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $storeAId);
+        $response->assertStatus(200)->assertJsonCount(1, 'donnees')
+            ->assertJsonPath('donnees.0.id', $storeAId);
     }
 
     /**
@@ -95,12 +95,12 @@ class MultiTenantIsolationTest extends TestCase
         app(TenantContextContract::class)->setStoreId($storeAId);
 
         $storeUser = StoreUser::create([
-            'store_id' => $storeBId, // attacker-controlled value
-            'user_id' => User::factory()->create()->id,
-            'status' => 'active',
+            'boutique_id' => $storeBId, // attacker-controlled value
+            'utilisateur_id' => User::factory()->create()->id,
+            'statut' => 'actif',
         ]);
 
-        $this->assertSame($storeAId, $storeUser->store_id);
+        $this->assertSame($storeAId, $storeUser->boutique_id);
     }
 
     /**
@@ -114,7 +114,7 @@ class MultiTenantIsolationTest extends TestCase
 
         // $userB is only a member of Store B, never of Store A.
         Sanctum::actingAs($userA);
-        $response = $this->deleteJson("/api/stores/{$storeAId}/members/{$userB->id}");
+        $response = $this->deleteJson("/api/boutiques/{$storeAId}/membres/{$userB->id}");
 
         $response->assertStatus(404);
     }

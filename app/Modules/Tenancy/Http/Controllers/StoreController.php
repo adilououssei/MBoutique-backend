@@ -22,7 +22,7 @@ class StoreController extends ApiController
     ) {}
 
     /**
-     * GET /api/stores — "which stores can I act on", the store-switch
+     * GET /api/boutiques — "which stores can I act on", the store-switch
      * entry point for the mobile/React client. Deliberately has no
      * {store} in the URL and no 'store' middleware: TenantContext stays
      * unset for this request, so BelongsToStore's global scope on
@@ -32,13 +32,13 @@ class StoreController extends ApiController
     public function mine(Request $request)
     {
         $storeUsers = StoreUser::with('store.businessDomain')
-            ->where('user_id', $request->user()->id)
-            ->where('status', StoreUserStatus::Active->value)
+            ->where('utilisateur_id', $request->user()->id)
+            ->where('statut', StoreUserStatus::Active->value)
             ->get();
 
         $stores = $storeUsers->map(function (StoreUser $storeUser) use ($request) {
             $store = $storeUser->store;
-            $store->setAttribute('my_role', $this->roleOnStore($request, $store));
+            $store->setAttribute('mon_role', $this->roleOnStore($request, $store));
 
             return $store;
         });
@@ -58,7 +58,7 @@ class StoreController extends ApiController
         $this->authorize('createStore', $business);
 
         $data = $request->validated();
-        $data['slug'] ??= Str::slug($data['name']).'-'.Str::lower(Str::random(6));
+        $data['slug'] ??= Str::slug($data['nom']).'-'.Str::lower(Str::random(6));
 
         $store = $this->storeService->createForBusiness($business, $data);
 

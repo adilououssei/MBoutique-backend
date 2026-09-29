@@ -15,24 +15,24 @@ class StoreResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'business_id' => $this->business_id,
-            'business_domain' => $this->whenLoaded('businessDomain', fn () => [
+            'entreprise_id' => $this->entreprise_id,
+            'domaine_activite' => $this->whenLoaded('businessDomain', fn () => [
                 'slug' => $this->businessDomain->slug,
-                'name' => $this->businessDomain->name,
+                'nom' => $this->businessDomain->nom,
             ]),
-            'name' => $this->name,
+            'nom' => $this->nom,
             'slug' => $this->slug,
-            'address' => $this->address,
-            'phone' => $this->phone,
-            'currency' => $this->currency,
-            'timezone' => $this->timezone,
-            'status' => $this->status->value,
-            'settings' => $this->settings,
+            'adresse' => $this->adresse,
+            'telephone' => $this->telephone,
+            'devise' => $this->devise,
+            'fuseau_horaire' => $this->fuseau_horaire,
+            'statut' => $this->statut->value,
+            'parametres' => $this->parametres,
             // Populated only when this resource wraps a StoreUser-joined
             // row (see StoreController::mine) — the caller's own role/
             // membership status on this specific store.
-            'my_role' => $this->when(isset($this->my_role), fn () => $this->my_role),
-            'created_at' => $this->created_at,
+            'mon_role' => $this->when(isset($this->mon_role), fn () => $this->mon_role),
+            'cree_le' => $this->created_at,
         ];
     }
 }

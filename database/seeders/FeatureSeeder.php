@@ -19,58 +19,58 @@ class FeatureSeeder extends Seeder
     public function run(): void
     {
         $features = collect([
-            'products' => 'Produits',
+            'produits' => 'Produits',
             'categories' => 'Catégories',
             'services' => 'Services',
-            'inventory' => 'Stock',
-            'sales' => 'Ventes',
-            'cash_register' => 'Caisse',
-            'customers' => 'Clients',
-            'suppliers' => 'Fournisseurs',
-            'employees' => 'Employés',
-            'appointments' => 'Rendez-vous',
-            'orders' => 'Commandes',
+            'stock' => 'Stock',
+            'ventes' => 'Ventes',
+            'caisse' => 'Caisse',
+            'clients' => 'Clients',
+            'fournisseurs' => 'Fournisseurs',
+            'employes' => 'Employés',
+            'rendez_vous' => 'Rendez-vous',
+            'commandes' => 'Commandes',
             'tables' => 'Tables',
-            'reports' => 'Rapports',
+            'rapports' => 'Rapports',
         ])->map(fn (string $name, string $slug) => Feature::query()->firstOrCreate(
             ['slug' => $slug],
-            ['name' => $name],
+            ['nom' => $name],
         ));
 
         FeatureDependency::firstOrCreate([
-            'feature_id' => $features['appointments']->id,
-            'depends_on_feature_id' => $features['services']->id,
+            'fonctionnalite_id' => $features['rendez_vous']->id,
+            'depend_de_fonctionnalite_id' => $features['services']->id,
         ]);
         FeatureDependency::firstOrCreate([
-            'feature_id' => $features['appointments']->id,
-            'depends_on_feature_id' => $features['employees']->id,
+            'fonctionnalite_id' => $features['rendez_vous']->id,
+            'depend_de_fonctionnalite_id' => $features['employes']->id,
         ]);
         FeatureDependency::firstOrCreate([
-            'feature_id' => $features['tables']->id,
-            'depends_on_feature_id' => $features['orders']->id,
+            'fonctionnalite_id' => $features['tables']->id,
+            'depend_de_fonctionnalite_id' => $features['commandes']->id,
         ]);
 
         $domains = [
-            'general_store' => ['Alimentation générale', ['products', 'categories', 'inventory', 'sales', 'cash_register', 'customers', 'suppliers', 'employees', 'reports']],
-            'butchery' => ['Boucherie', ['products', 'categories', 'inventory', 'sales', 'cash_register', 'customers', 'suppliers', 'employees', 'reports']],
-            'restaurant' => ['Restaurant', ['products', 'inventory', 'tables', 'orders', 'sales', 'cash_register', 'customers', 'employees', 'reports']],
-            'hair_salon' => ['Coiffure', ['customers', 'services', 'appointments', 'employees', 'sales', 'cash_register', 'reports']],
-            'beauty_salon' => ['Salon de beauté', ['customers', 'services', 'appointments', 'employees', 'sales', 'cash_register', 'reports']],
-            'pharmacy' => ['Pharmacie', ['products', 'categories', 'inventory', 'sales', 'cash_register', 'customers', 'suppliers', 'employees', 'reports']],
-            'clothing' => ['Boutique de vêtements', ['products', 'categories', 'inventory', 'sales', 'cash_register', 'customers', 'employees', 'reports']],
-            'electronics' => ['Électronique', ['products', 'categories', 'inventory', 'sales', 'cash_register', 'customers', 'suppliers', 'employees', 'reports']],
-            'workshop' => ['Atelier', ['services', 'orders', 'customers', 'employees', 'sales', 'cash_register', 'reports']],
-            'laundry' => ['Pressing', ['services', 'orders', 'customers', 'employees', 'sales', 'cash_register', 'reports']],
-            'other' => ['Autre', ['products', 'services', 'sales', 'cash_register', 'customers', 'reports']],
+            'alimentation_generale' => ['Alimentation générale', ['produits', 'categories', 'stock', 'ventes', 'caisse', 'clients', 'fournisseurs', 'employes', 'rapports']],
+            'boucherie' => ['Boucherie', ['produits', 'categories', 'stock', 'ventes', 'caisse', 'clients', 'fournisseurs', 'employes', 'rapports']],
+            'restaurant' => ['Restaurant', ['produits', 'stock', 'tables', 'commandes', 'ventes', 'caisse', 'clients', 'employes', 'rapports']],
+            'coiffure' => ['Coiffure', ['clients', 'services', 'rendez_vous', 'employes', 'ventes', 'caisse', 'rapports']],
+            'salon_beaute' => ['Salon de beauté', ['clients', 'services', 'rendez_vous', 'employes', 'ventes', 'caisse', 'rapports']],
+            'pharmacie' => ['Pharmacie', ['produits', 'categories', 'stock', 'ventes', 'caisse', 'clients', 'fournisseurs', 'employes', 'rapports']],
+            'vetements' => ['Boutique de vêtements', ['produits', 'categories', 'stock', 'ventes', 'caisse', 'clients', 'employes', 'rapports']],
+            'electronique' => ['Électronique', ['produits', 'categories', 'stock', 'ventes', 'caisse', 'clients', 'fournisseurs', 'employes', 'rapports']],
+            'atelier' => ['Atelier', ['services', 'commandes', 'clients', 'employes', 'ventes', 'caisse', 'rapports']],
+            'pressing' => ['Pressing', ['services', 'commandes', 'clients', 'employes', 'ventes', 'caisse', 'rapports']],
+            'autre' => ['Autre', ['produits', 'services', 'ventes', 'caisse', 'clients', 'rapports']],
         ];
 
         foreach ($domains as $slug => [$name, $featureSlugs]) {
-            $domain = BusinessDomain::query()->firstOrCreate(['slug' => $slug], ['name' => $name]);
+            $domain = BusinessDomain::query()->firstOrCreate(['slug' => $slug], ['nom' => $name]);
 
             foreach ($featureSlugs as $featureSlug) {
                 $domain->domainFeatures()->firstOrCreate(
-                    ['feature_id' => $features[$featureSlug]->id],
-                    ['is_default_enabled' => true],
+                    ['fonctionnalite_id' => $features[$featureSlug]->id],
+                    ['active_par_defaut' => true],
                 );
             }
         }

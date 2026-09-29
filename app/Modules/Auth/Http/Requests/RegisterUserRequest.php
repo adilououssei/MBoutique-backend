@@ -15,10 +15,10 @@ class RegisterUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:32', 'unique:users,phone'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'nom' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:utilisateurs,email'],
+            'telephone' => ['nullable', 'string', 'max:32', 'unique:utilisateurs,telephone'],
+            'mot_de_passe' => ['required', 'confirmed', Password::defaults()],
         ];
     }
 }

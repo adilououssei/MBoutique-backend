@@ -25,11 +25,11 @@ class StoreFeatureOverrideIsolationTest extends TestCase
     {
         $domain = BusinessDomain::factory()->create();
         $feature = Feature::factory()->create();
-        $storeA = Store::factory()->create(['business_domain_id' => $domain->id]);
-        $storeB = Store::factory()->create(['business_domain_id' => $domain->id]);
+        $storeA = Store::factory()->create(['domaine_activite_id' => $domain->id]);
+        $storeB = Store::factory()->create(['domaine_activite_id' => $domain->id]);
 
         app(TenantContextContract::class)->setStoreId($storeB->id);
-        StoreFeatureOverride::create(['feature_id' => $feature->id, 'is_enabled' => false]);
+        StoreFeatureOverride::create(['fonctionnalite_id' => $feature->id, 'activee' => false]);
 
         app(TenantContextContract::class)->setStoreId($storeA->id);
 
@@ -40,40 +40,40 @@ class StoreFeatureOverrideIsolationTest extends TestCase
     public function test_store_bs_override_can_never_leak_into_store_as_feature_resolution(): void
     {
         $domain = BusinessDomain::factory()->create();
-        $feature = Feature::factory()->create(['slug' => 'inventory']);
+        $feature = Feature::factory()->create(['slug' => 'stock']);
         DomainFeature::create([
-            'business_domain_id' => $domain->id,
-            'feature_id' => $feature->id,
-            'is_default_enabled' => true,
+            'domaine_activite_id' => $domain->id,
+            'fonctionnalite_id' => $feature->id,
+            'active_par_defaut' => true,
         ]);
-        $storeA = Store::factory()->create(['business_domain_id' => $domain->id]);
-        $storeB = Store::factory()->create(['business_domain_id' => $domain->id]);
+        $storeA = Store::factory()->create(['domaine_activite_id' => $domain->id]);
+        $storeB = Store::factory()->create(['domaine_activite_id' => $domain->id]);
 
         // Store B explicitly disables inventory; Store A never touched it.
         app(TenantContextContract::class)->setStoreId($storeB->id);
-        StoreFeatureOverride::create(['feature_id' => $feature->id, 'is_enabled' => false]);
+        StoreFeatureOverride::create(['fonctionnalite_id' => $feature->id, 'activee' => false]);
 
         $gate = app(FeatureGate::class);
 
-        $this->assertTrue($gate->allows($storeA->fresh(), 'inventory'), 'Store A keeps the domain default');
-        $this->assertFalse($gate->allows($storeB->fresh(), 'inventory'), 'Store B kept its own override');
+        $this->assertTrue($gate->allows($storeA->fresh(), 'stock'), 'Store A keeps the domain default');
+        $this->assertFalse($gate->allows($storeB->fresh(), 'stock'), 'Store B kept its own override');
     }
 
     public function test_an_override_created_while_scoped_to_store_a_can_never_be_attached_to_store_b(): void
     {
         $domain = BusinessDomain::factory()->create();
         $feature = Feature::factory()->create();
-        $storeA = Store::factory()->create(['business_domain_id' => $domain->id]);
-        $storeB = Store::factory()->create(['business_domain_id' => $domain->id]);
+        $storeA = Store::factory()->create(['domaine_activite_id' => $domain->id]);
+        $storeB = Store::factory()->create(['domaine_activite_id' => $domain->id]);
 
         app(TenantContextContract::class)->setStoreId($storeA->id);
 
         $override = StoreFeatureOverride::create([
-            'store_id' => $storeB->id, // attacker-controlled value, must be ignored
-            'feature_id' => $feature->id,
-            'is_enabled' => false,
+            'boutique_id' => $storeB->id, // attacker-controlled value, must be ignored
+            'fonctionnalite_id' => $feature->id,
+            'activee' => false,
         ]);
 
-        $this->assertSame($storeA->id, $override->store_id);
+        $this->assertSame($storeA->id, $override->boutique_id);
     }
 }

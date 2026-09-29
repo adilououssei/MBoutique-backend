@@ -21,7 +21,7 @@ class AuthenticatedSessionController extends ApiController
     {
         $user = User::where('email', $request->validated('email'))->first();
 
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        if (! $user || ! Hash::check($request->validated('mot_de_passe'), $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Ces identifiants ne correspondent à aucun compte.'],
             ]);
@@ -33,11 +33,11 @@ class AuthenticatedSessionController extends ApiController
             ]);
         }
 
-        $token = $user->createToken($request->input('device_name', 'api'))->plainTextToken;
+        $token = $user->createToken($request->input('nom_appareil', 'api'))->plainTextToken;
 
         return $this->success([
-            'user' => new UserResource($user),
-            'token' => $token,
+            'utilisateur' => new UserResource($user),
+            'jeton' => $token,
         ], 'Connexion réussie.');
     }
 

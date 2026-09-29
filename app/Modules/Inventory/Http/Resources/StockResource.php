@@ -19,12 +19,12 @@ class StockResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'product' => new ProductResource($this->product),
-            'quantity' => $this->quantity,
-            'minimum_quantity' => $this->minimum_quantity,
-            'is_low_stock' => $this->isLowStock(),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'produit' => new ProductResource($this->product),
+            'quantite' => $this->quantite,
+            'quantite_minimum' => $this->quantite_minimum,
+            'stock_faible' => $this->isLowStock(),
+            'cree_le' => $this->created_at,
+            'modifie_le' => $this->updated_at,
         ];
     }
 }

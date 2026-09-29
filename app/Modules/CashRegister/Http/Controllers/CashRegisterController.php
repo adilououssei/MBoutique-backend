@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
  * Plain CRUD on the till definition itself — no financial logic here,
  * so no CashRegisterService involved (that's reserved for
  * CashRegisterSessionController/CashMovementController). No destroy():
- * a register with history is deactivated (is_active=false), never hard
+ * a register with history is deactivated (actif=false), never hard
  * deleted — see docs/cash-register.md §"Caisse inactive".
  */
 class CashRegisterController extends ApiController
@@ -24,10 +24,10 @@ class CashRegisterController extends ApiController
         $this->authorize('viewAny', [CashRegister::class, $store]);
 
         $registers = CashRegister::query()
-            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->string('search').'%'))
-            ->when($request->has('is_active'), fn ($q) => $q->where('is_active', $request->boolean('is_active')))
-            ->orderBy('name')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->when($request->filled('recherche'), fn ($q) => $q->where('nom', 'like', '%'.$request->string('recherche').'%'))
+            ->when($request->has('actif'), fn ($q) => $q->where('actif', $request->boolean('actif')))
+            ->orderBy('nom')
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(CashRegisterResource::collection($registers));
     }

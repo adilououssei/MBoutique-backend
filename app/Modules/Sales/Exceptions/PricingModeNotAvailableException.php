@@ -13,6 +13,6 @@ class PricingModeNotAvailableException extends RuntimeException
     {
         $label = $mode === PricingMode::Retail ? 'détail' : 'gros';
 
-        return new self("Le mode de prix \"{$label}\" n'est pas activé pour \"{$product->name}\".");
+        return new self("Le mode de prix \"{$label}\" n'est pas activé pour \"{$product->nom}\".");
     }
 }

@@ -11,13 +11,16 @@ class RegisteredUserController extends ApiController
 {
     public function store(RegisterUserRequest $request)
     {
-        $user = User::create($request->safe()->only(['name', 'email', 'phone', 'password']));
+        $user = User::create([
+            ...$request->safe()->only(['nom', 'email', 'telephone']),
+            'password' => $request->validated('mot_de_passe'),
+        ]);
 
-        $token = $user->createToken($request->input('device_name', 'api'))->plainTextToken;
+        $token = $user->createToken($request->input('nom_appareil', 'api'))->plainTextToken;
 
         return $this->success([
-            'user' => new UserResource($user),
-            'token' => $token,
+            'utilisateur' => new UserResource($user),
+            'jeton' => $token,
         ], 'Compte créé avec succès.', [], 201);
     }
 }

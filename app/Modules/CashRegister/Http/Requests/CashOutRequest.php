@@ -14,8 +14,8 @@ class CashOutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'gt:0'],
-            'reason' => ['nullable', 'string', 'max:500'],
+            'montant' => ['required', 'numeric', 'gt:0'],
+            'motif' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

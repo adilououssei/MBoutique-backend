@@ -10,31 +10,31 @@ class ProductPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('products.view');
+        return $user->can('produits.voir');
     }
 
     public function view(User $user, Product $product, Store $store): bool
     {
-        return $product->store_id === $store->id && $user->can('products.view');
+        return $product->boutique_id === $store->id && $user->can('produits.voir');
     }
 
     public function create(User $user, Store $store): bool
     {
-        return $user->can('products.create');
+        return $user->can('produits.creer');
     }
 
     public function import(User $user, Store $store): bool
     {
-        return $user->can('products.import');
+        return $user->can('produits.importer');
     }
 
     public function update(User $user, Product $product, Store $store): bool
     {
-        return $product->store_id === $store->id && $user->can('products.update');
+        return $product->boutique_id === $store->id && $user->can('produits.modifier');
     }
 
     public function delete(User $user, Product $product, Store $store): bool
     {
-        return $product->store_id === $store->id && $user->can('products.delete');
+        return $product->boutique_id === $store->id && $user->can('produits.supprimer');
     }
 }

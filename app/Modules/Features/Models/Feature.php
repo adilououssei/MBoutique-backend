@@ -4,6 +4,7 @@ namespace App\Modules\Features\Models;
 
 use Database\Factories\Modules\Features\FeatureFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,13 +15,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * a Feature never contains logic specific to one BusinessDomain — the
  * mapping lives entirely in DomainFeature. See docs/features.md.
  */
-#[Fillable(['name', 'slug', 'description', 'is_active'])]
+#[Fillable(['nom', 'slug', 'description', 'actif'])]
+#[Table('fonctionnalites')]
 class Feature extends Model
 {
     use HasFactory;
 
     protected $attributes = [
-        'is_active' => true,
+        'actif' => true,
     ];
 
     protected static function newFactory(): FeatureFactory
@@ -31,17 +33,17 @@ class Feature extends Model
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'actif' => 'boolean',
         ];
     }
 
     public function domainFeatures(): HasMany
     {
-        return $this->hasMany(DomainFeature::class);
+        return $this->hasMany(DomainFeature::class, 'fonctionnalite_id');
     }
 
     public function dependencies(): HasMany
     {
-        return $this->hasMany(FeatureDependency::class, 'feature_id');
+        return $this->hasMany(FeatureDependency::class, 'fonctionnalite_id');
     }
 }

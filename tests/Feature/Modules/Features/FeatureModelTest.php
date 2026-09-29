@@ -14,18 +14,18 @@ class FeatureModelTest extends TestCase
 
     public function test_a_feature_can_be_created(): void
     {
-        $feature = Feature::factory()->create(['slug' => 'products']);
+        $feature = Feature::factory()->create(['slug' => 'produits']);
 
-        $this->assertDatabaseHas('features', ['slug' => 'products', 'is_active' => true]);
+        $this->assertDatabaseHas('fonctionnalites', ['slug' => 'produits', 'actif' => true]);
     }
 
     public function test_a_feature_can_be_deactivated(): void
     {
         $feature = Feature::factory()->create();
 
-        $feature->update(['is_active' => false]);
+        $feature->update(['actif' => false]);
 
-        $this->assertFalse($feature->fresh()->is_active);
+        $this->assertFalse($feature->fresh()->actif);
     }
 
     public function test_a_feature_can_be_associated_with_a_domain(): void
@@ -34,13 +34,13 @@ class FeatureModelTest extends TestCase
         $feature = Feature::factory()->create();
 
         $domainFeature = DomainFeature::create([
-            'business_domain_id' => $domain->id,
-            'feature_id' => $feature->id,
-            'is_default_enabled' => true,
+            'domaine_activite_id' => $domain->id,
+            'fonctionnalite_id' => $feature->id,
+            'active_par_defaut' => true,
         ]);
 
         $this->assertCount(1, $domain->domainFeatures);
-        $this->assertTrue($domainFeature->is_default_enabled);
+        $this->assertTrue($domainFeature->active_par_defaut);
     }
 
     public function test_a_feature_can_be_removed_from_a_domain(): void
@@ -48,9 +48,9 @@ class FeatureModelTest extends TestCase
         $domain = BusinessDomain::factory()->create();
         $feature = Feature::factory()->create();
         $domainFeature = DomainFeature::create([
-            'business_domain_id' => $domain->id,
-            'feature_id' => $feature->id,
-            'is_default_enabled' => true,
+            'domaine_activite_id' => $domain->id,
+            'fonctionnalite_id' => $feature->id,
+            'active_par_defaut' => true,
         ]);
 
         $domainFeature->delete();

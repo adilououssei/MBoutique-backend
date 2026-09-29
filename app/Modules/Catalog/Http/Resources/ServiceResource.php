@@ -15,15 +15,15 @@ class ServiceResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'category' => new CategoryResource($this->whenLoaded('category')),
-            'name' => $this->name,
+            'categorie' => new CategoryResource($this->whenLoaded('category')),
+            'nom' => $this->nom,
             'slug' => $this->slug,
             'description' => $this->description,
-            'price' => $this->price,
-            'duration_minutes' => $this->duration_minutes,
-            'is_active' => $this->is_active,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'prix' => $this->prix,
+            'duree_minutes' => $this->duree_minutes,
+            'actif' => $this->actif,
+            'cree_le' => $this->created_at,
+            'modifie_le' => $this->updated_at,
         ];
     }
 }

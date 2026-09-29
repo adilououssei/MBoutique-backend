@@ -16,13 +16,13 @@ class MeTest extends TestCase
         $user = User::factory()->create(['email' => 'aicha@example.com']);
         Sanctum::actingAs($user);
 
-        $response = $this->getJson('/api/auth/me');
+        $response = $this->getJson('/api/auth/moi');
 
-        $response->assertStatus(200)->assertJsonPath('data.email', 'aicha@example.com');
+        $response->assertStatus(200)->assertJsonPath('donnees.email', 'aicha@example.com');
     }
 
     public function test_a_guest_cannot_fetch_a_profile(): void
     {
-        $this->getJson('/api/auth/me')->assertStatus(401)->assertJsonPath('code', 'UNAUTHENTICATED');
+        $this->getJson('/api/auth/moi')->assertStatus(401)->assertJsonPath('code', 'NON_AUTHENTIFIE');
     }
 }

@@ -28,34 +28,34 @@ final class ProductRules
         $required = $partial ? 'sometimes' : 'required';
 
         return [
-            'name' => [$required, 'string', 'max:255'],
+            'nom' => [$required, 'string', 'max:255'],
             'slug' => [
                 $required, 'string', 'max:255', 'alpha_dash',
-                TenantScopedRules::uniqueInCurrentStore('products', 'slug')->ignore($ignore),
+                TenantScopedRules::uniqueInCurrentStore('produits', 'slug')->ignore($ignore),
             ],
             'description' => ['nullable', 'string'],
             // category_id must belong to the CURRENT store — Couche 5 of
             // docs/multi-tenancy.md.
-            'category_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('categories')],
+            'categorie_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('categories')],
             'sku' => [
                 'nullable', 'string', 'max:100',
-                TenantScopedRules::uniqueInCurrentStore('products', 'sku')->ignore($ignore),
+                TenantScopedRules::uniqueInCurrentStore('produits', 'sku')->ignore($ignore),
             ],
-            'barcode' => [
+            'code_barres' => [
                 'nullable', 'string', 'max:100',
-                TenantScopedRules::uniqueInCurrentStore('products', 'barcode')->ignore($ignore),
+                TenantScopedRules::uniqueInCurrentStore('produits', 'code_barres')->ignore($ignore),
             ],
-            'unit' => ['sometimes', Rule::enum(ProductUnit::class)],
-            'purchase_price' => ['nullable', 'numeric', 'min:0'],
+            'unite' => ['sometimes', Rule::enum(ProductUnit::class)],
+            'prix_achat' => ['nullable', 'numeric', 'min:0'],
             // Détail/Gros: *_price is required exactly when *_enabled is
             // true, and forbidden otherwise (docs/catalog.md §4). Both
             // rules are implicit, so they run even when the field is
             // entirely absent from a partial update payload.
-            'retail_enabled' => ['sometimes', 'boolean'],
-            'retail_price' => ['nullable', 'numeric', 'min:0', 'required_if:retail_enabled,true', 'prohibited_unless:retail_enabled,true'],
-            'wholesale_enabled' => ['sometimes', 'boolean'],
-            'wholesale_price' => ['nullable', 'numeric', 'min:0', 'required_if:wholesale_enabled,true', 'prohibited_unless:wholesale_enabled,true'],
-            'is_active' => ['sometimes', 'boolean'],
+            'vente_detail_active' => ['sometimes', 'boolean'],
+            'prix_detail' => ['nullable', 'numeric', 'min:0', 'required_if:vente_detail_active,true', 'prohibited_unless:vente_detail_active,true'],
+            'vente_gros_active' => ['sometimes', 'boolean'],
+            'prix_gros' => ['nullable', 'numeric', 'min:0', 'required_if:vente_gros_active,true', 'prohibited_unless:vente_gros_active,true'],
+            'actif' => ['sometimes', 'boolean'],
         ];
     }
 }

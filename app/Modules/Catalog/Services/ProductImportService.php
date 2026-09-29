@@ -34,7 +34,7 @@ class ProductImportService
     public function __construct(private readonly ProductService $products) {}
 
     /**
-     * @return array{total_rows: int, imported: int, rejected: int, errors: array<int, array{line: int, errors: array<string, array<int, string>>}>}
+     * @return array{total_lignes: int, importes: int, rejetes: int, erreurs: array<int, array{ligne: int, erreurs: array<string, array<int, string>>}>}
      *
      * @throws ProductImportRejectedException the whole file is unreadable or has too many rows
      */
@@ -66,11 +66,11 @@ class ProductImportService
             $validator->fails();
 
             if ($categoryError !== null) {
-                $validator->errors()->add('category', $categoryError);
+                $validator->errors()->add('categorie', $categoryError);
             }
 
             if ($validator->errors()->isNotEmpty()) {
-                $errors[] = ['line' => $line, 'errors' => $validator->errors()->toArray()];
+                $errors[] = ['ligne' => $line, 'erreurs' => $validator->errors()->toArray()];
 
                 continue;
             }
@@ -80,10 +80,10 @@ class ProductImportService
         }
 
         return [
-            'total_rows' => $rows->count(),
-            'imported' => $imported,
-            'rejected' => count($errors),
-            'errors' => $errors,
+            'total_lignes' => $rows->count(),
+            'importes' => $imported,
+            'rejetes' => count($errors),
+            'erreurs' => $errors,
         ];
     }
 
@@ -93,8 +93,8 @@ class ProductImportService
      */
     private function normalizeRow(array $row, Store $store): array
     {
-        $name = $this->nullableString($row['name'] ?? null);
-        $categoryName = $this->nullableString($row['category'] ?? null);
+        $name = $this->nullableString($row['nom'] ?? null);
+        $categoryName = $this->nullableString($row['categorie'] ?? null);
 
         $categoryId = null;
         $categoryError = null;
@@ -104,8 +104,8 @@ class ProductImportService
             // nom de catégorie": never resolved globally, and never
             // auto-created when missing, the row is rejected instead.
             $category = Category::query()
-                ->where('store_id', $store->id)
-                ->whereRaw('LOWER(name) = ?', [Str::lower($categoryName)])
+                ->where('boutique_id', $store->id)
+                ->whereRaw('LOWER(nom) = ?', [Str::lower($categoryName)])
                 ->first();
 
             if ($category) {
@@ -116,19 +116,19 @@ class ProductImportService
         }
 
         $data = [
-            'name' => $name,
+            'nom' => $name,
             'slug' => $name !== null ? Str::slug($name) : null,
             'description' => $this->nullableString($row['description'] ?? null),
-            'category_id' => $categoryId,
+            'categorie_id' => $categoryId,
             'sku' => $this->nullableString($row['sku'] ?? null),
-            'barcode' => $this->nullableString($row['barcode'] ?? null),
-            'unit' => $this->nullableString($row['unit'] ?? null) ?? 'piece',
-            'purchase_price' => $this->nullableString($row['purchase_price'] ?? null),
-            'retail_enabled' => $this->normalizeBoolean($row['retail_enabled'] ?? false),
-            'retail_price' => $this->nullableString($row['retail_price'] ?? null),
-            'wholesale_enabled' => $this->normalizeBoolean($row['wholesale_enabled'] ?? false),
-            'wholesale_price' => $this->nullableString($row['wholesale_price'] ?? null),
-            'is_active' => $this->normalizeBoolean($row['is_active'] ?? true),
+            'code_barres' => $this->nullableString($row['code_barres'] ?? null),
+            'unite' => $this->nullableString($row['unite'] ?? null) ?? 'piece',
+            'prix_achat' => $this->nullableString($row['prix_achat'] ?? null),
+            'vente_detail_active' => $this->normalizeBoolean($row['vente_detail_active'] ?? false),
+            'prix_detail' => $this->nullableString($row['prix_detail'] ?? null),
+            'vente_gros_active' => $this->normalizeBoolean($row['vente_gros_active'] ?? false),
+            'prix_gros' => $this->nullableString($row['prix_gros'] ?? null),
+            'actif' => $this->normalizeBoolean($row['actif'] ?? true),
         ];
 
         return [$data, $categoryError];

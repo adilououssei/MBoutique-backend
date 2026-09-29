@@ -8,21 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('subscriptions', function (Blueprint $table) {
+        Schema::create('abonnements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')->unique()->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->constrained()->restrictOnDelete();
-            $table->string('status')->default('active');
-            $table->timestamp('trial_ends_at')->nullable();
-            $table->timestamp('current_period_starts_at')->nullable();
-            $table->timestamp('current_period_ends_at')->nullable();
-            $table->timestamp('cancelled_at')->nullable();
+            $table->foreignId('entreprise_id')->unique()->constrained()->cascadeOnDelete();
+            $table->foreignId('forfait_id')->constrained()->restrictOnDelete();
+            $table->string('statut')->default('actif');
+            $table->timestamp('fin_essai_le')->nullable();
+            $table->timestamp('debut_periode_le')->nullable();
+            $table->timestamp('fin_periode_le')->nullable();
+            $table->timestamp('annule_le')->nullable();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('subscriptions');
+        Schema::dropIfExists('abonnements');
     }
 };

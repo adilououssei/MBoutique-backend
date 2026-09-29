@@ -28,12 +28,12 @@ class BelongsToStoreTest extends TestCase
         app(TenantContextContract::class)->setStoreId($storeA->id);
 
         $storeUser = StoreUser::create([
-            'store_id' => $storeB->id, // attacker-controlled value, must be ignored
-            'user_id' => $user->id,
-            'status' => 'active',
+            'boutique_id' => $storeB->id, // attacker-controlled value, must be ignored
+            'utilisateur_id' => $user->id,
+            'statut' => 'actif',
         ]);
 
-        $this->assertSame($storeA->id, $storeUser->store_id);
+        $this->assertSame($storeA->id, $storeUser->boutique_id);
     }
 
     public function test_store_id_cannot_be_changed_after_creation(): void
@@ -42,11 +42,11 @@ class BelongsToStoreTest extends TestCase
         $storeB = Store::factory()->create();
 
         app(TenantContextContract::class)->setStoreId($storeA->id);
-        $storeUser = StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        $storeUser = StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
 
         $this->expectException(\RuntimeException::class);
 
-        $storeUser->update(['store_id' => $storeB->id]);
+        $storeUser->update(['boutique_id' => $storeB->id]);
     }
 
     public function test_creating_without_a_resolved_tenant_throws(): void
@@ -55,7 +55,7 @@ class BelongsToStoreTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
 
-        StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
     }
 
     public function test_the_global_scope_only_returns_rows_of_the_current_store(): void
@@ -64,10 +64,10 @@ class BelongsToStoreTest extends TestCase
         $storeB = Store::factory()->create();
 
         app(TenantContextContract::class)->setStoreId($storeA->id);
-        StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
 
         app(TenantContextContract::class)->setStoreId($storeB->id);
-        StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
 
         $this->assertCount(1, StoreUser::all());
         $this->assertCount(2, StoreUser::withoutStoreScope()->get());

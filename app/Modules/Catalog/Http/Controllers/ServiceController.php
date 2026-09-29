@@ -18,11 +18,11 @@ class ServiceController extends ApiController
 
         $services = Service::query()
             ->with('category')
-            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->string('search').'%'))
-            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
-            ->when($request->has('is_active'), fn ($q) => $q->where('is_active', $request->boolean('is_active')))
-            ->orderBy('name')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->when($request->filled('recherche'), fn ($q) => $q->where('nom', 'like', '%'.$request->string('recherche').'%'))
+            ->when($request->filled('categorie_id'), fn ($q) => $q->where('categorie_id', $request->integer('categorie_id')))
+            ->when($request->has('actif'), fn ($q) => $q->where('actif', $request->boolean('actif')))
+            ->orderBy('nom')
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(ServiceResource::collection($services));
     }

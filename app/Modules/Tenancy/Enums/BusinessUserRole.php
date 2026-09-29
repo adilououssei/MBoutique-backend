@@ -9,6 +9,6 @@ namespace App\Modules\Tenancy\Enums;
  */
 enum BusinessUserRole: string
 {
-    case Owner = 'owner';
-    case Admin = 'admin';
+    case Owner = 'proprietaire';
+    case Admin = 'administrateur';
 }

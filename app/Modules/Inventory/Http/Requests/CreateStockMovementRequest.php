@@ -8,10 +8,10 @@ use Illuminate\Validation\Rule;
 
 /**
  * One endpoint, one Request, for every manually-recordable movement
- * (initial/purchase/return_in/adjustment_in/adjustment_out/loss/stocktake)
- * — see docs/inventory.md §"Contrat de validation" for why `quantity`
+ * (initial/achat/retour/ajustement_entree/ajustement_sortie/perte/inventaire)
+ * — see docs/inventory.md §"Contrat de validation" for why `quantite`
  * (an unsigned magnitude, direction implied by `type`) and
- * `counted_quantity` (an absolute physical count, only for stocktake)
+ * `quantite_comptee` (an absolute physical count, only for stocktake)
  * are two distinct fields rather than one ambiguous "quantity or delta".
  */
 class CreateStockMovementRequest extends FormRequest
@@ -27,11 +27,11 @@ class CreateStockMovementRequest extends FormRequest
 
         return [
             'type' => ['required', Rule::in($recordable)],
-            'quantity' => ['required_unless:type,stocktake', 'prohibited_if:type,stocktake', 'numeric', 'gt:0'],
-            'counted_quantity' => ['required_if:type,stocktake', 'prohibited_unless:type,stocktake', 'numeric', 'min:0'],
+            'quantite' => ['required_unless:type,inventaire', 'prohibited_if:type,inventaire', 'numeric', 'gt:0'],
+            'quantite_comptee' => ['required_if:type,inventaire', 'prohibited_unless:type,inventaire', 'numeric', 'min:0'],
             // Only meaningful the one time a Stock is created.
-            'minimum_quantity' => ['nullable', 'numeric', 'min:0', 'prohibited_unless:type,initial'],
-            'reason' => ['nullable', 'string', 'max:500'],
+            'quantite_minimum' => ['nullable', 'numeric', 'min:0', 'prohibited_unless:type,initial'],
+            'motif' => ['nullable', 'string', 'max:500'],
         ];
     }
 

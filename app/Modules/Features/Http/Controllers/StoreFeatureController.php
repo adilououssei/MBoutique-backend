@@ -11,7 +11,7 @@ class StoreFeatureController extends ApiController
     public function __construct(private readonly FeatureGate $featureGate) {}
 
     /**
-     * GET /api/stores/{store}/features — lets the mobile/React client
+     * GET /api/boutiques/{store}/fonctionnalites — lets the mobile/React client
      * build its navigation dynamically instead of re-implementing
      * FeatureGate's resolution logic itself. See docs/feature-gate.md.
      */
@@ -24,13 +24,13 @@ class StoreFeatureController extends ApiController
         $resolved = $this->featureGate->resolveForStore($store);
 
         return $this->success([
-            'domain' => [
+            'domaine' => [
                 'slug' => $store->businessDomain->slug,
-                'name' => $store->businessDomain->name,
+                'nom' => $store->businessDomain->nom,
             ],
-            'features' => $resolved->map(fn (bool $enabled, string $slug) => [
+            'fonctionnalites' => $resolved->map(fn (bool $enabled, string $slug) => [
                 'slug' => $slug,
-                'enabled' => $enabled,
+                'activee' => $enabled,
             ])->values(),
         ]);
     }

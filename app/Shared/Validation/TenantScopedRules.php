@@ -23,14 +23,14 @@ use Illuminate\Validation\Rules\Unique;
  * table (store_users) so it's proven correct before anything depends on it.
  *
  * Usage in a future FormRequest:
- *   'customer_id' => ['required', TenantScopedRules::existsInCurrentStore('customers')],
+ *   'client_id' => ['required', TenantScopedRules::existsInCurrentStore('clients')],
  */
 final class TenantScopedRules
 {
     public static function existsInCurrentStore(string $table, string $column = 'id'): Exists
     {
         return Rule::exists($table, $column)
-            ->where('store_id', app(TenantContextContract::class)->getStoreId());
+            ->where('boutique_id', app(TenantContextContract::class)->getStoreId());
     }
 
     /**
@@ -42,6 +42,6 @@ final class TenantScopedRules
     public static function uniqueInCurrentStore(string $table, ?string $column = null): Unique
     {
         return Rule::unique($table, $column)
-            ->where('store_id', app(TenantContextContract::class)->getStoreId());
+            ->where('boutique_id', app(TenantContextContract::class)->getStoreId());
     }
 }

@@ -28,19 +28,19 @@ class SaleFactory extends Factory
         $subtotal = fake()->randomFloat(2, 500, 50000);
 
         return [
-            'store_id' => Store::factory(),
-            'cash_register_id' => CashRegister::factory(),
-            'cash_register_session_id' => CashRegisterSession::factory(),
-            'customer_id' => null,
-            'sold_by_user_id' => null,
+            'boutique_id' => Store::factory(),
+            'caisse_id' => CashRegister::factory(),
+            'session_caisse_id' => CashRegisterSession::factory(),
+            'client_id' => null,
+            'vendeur_id' => null,
             'reference' => 'VTE-'.now()->format('Ymd').'-'.fake()->unique()->numberBetween(1, 999999),
-            'subtotal' => $subtotal,
-            'discount_amount' => 0,
-            'total_amount' => $subtotal,
-            'status' => SaleStatus::Completed,
-            'payment_method' => PaymentMethod::Cash,
-            'idempotency_key' => null,
-            'sold_at' => now(),
+            'sous_total' => $subtotal,
+            'montant_remise' => 0,
+            'montant_total' => $subtotal,
+            'statut' => SaleStatus::Completed,
+            'mode_paiement' => PaymentMethod::Cash,
+            'cle_idempotence' => null,
+            'vendue_le' => now(),
         ];
     }
 }

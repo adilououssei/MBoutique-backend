@@ -14,6 +14,6 @@ enum ProductUnit: string
     case G = 'g';
     case Litre = 'litre';
     case Ml = 'ml';
-    case Box = 'box';
-    case Pack = 'pack';
+    case Box = 'boite';
+    case Pack = 'paquet';
 }

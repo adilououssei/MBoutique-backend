@@ -12,6 +12,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Tenancy\Enums\StoreStatus;
 use Database\Factories\Modules\Tenancy\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,9 +24,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * The operational tenant: the isolation boundary for every business-data
  * table (BelongsToStore). Belongs to one Business, which may own several,
  * and to exactly one BusinessDomain (added in Phase 2 — see
- * docs/features.md and the migration that adds business_domain_id).
+ * docs/features.md and the migration that adds domaine_activite_id).
+ *
+ * The hasMany relations below are also what scoped route binding uses
+ * (`{product}` under `{store}` resolves through products()), which is why
+ * route parameter names stay English even though URL segments are French.
  */
-#[Fillable(['name', 'slug', 'address', 'phone', 'currency', 'timezone', 'business_domain_id'])]
+#[Fillable(['nom', 'slug', 'adresse', 'telephone', 'devise', 'fuseau_horaire', 'domaine_activite_id'])]
+#[Table('boutiques')]
 class Store extends Model
 {
     use HasFactory, SoftDeletes;
@@ -33,12 +39,12 @@ class Store extends Model
     /**
      * See the identical note on App\Models\User — Eloquent's create()
      * doesn't re-fetch DB-level defaults, so this must mirror the
-     * `stores` migration's defaults.
+     * `boutiques` migration's defaults.
      */
     protected $attributes = [
-        'status' => 'active',
-        'currency' => 'XOF',
-        'timezone' => 'UTC',
+        'statut' => 'active',
+        'devise' => 'XOF',
+        'fuseau_horaire' => 'UTC',
     ];
 
     protected static function newFactory(): StoreFactory
@@ -49,53 +55,53 @@ class Store extends Model
     protected function casts(): array
     {
         return [
-            'status' => StoreStatus::class,
-            'settings' => AsArrayObject::class,
+            'statut' => StoreStatus::class,
+            'parametres' => AsArrayObject::class,
         ];
     }
 
     public function business(): BelongsTo
     {
-        return $this->belongsTo(Business::class);
+        return $this->belongsTo(Business::class, 'entreprise_id');
     }
 
     public function businessDomain(): BelongsTo
     {
-        return $this->belongsTo(BusinessDomain::class);
+        return $this->belongsTo(BusinessDomain::class, 'domaine_activite_id');
     }
 
     public function storeUsers(): HasMany
     {
-        return $this->hasMany(StoreUser::class);
+        return $this->hasMany(StoreUser::class, 'boutique_id');
     }
 
     public function categories(): HasMany
     {
-        return $this->hasMany(Category::class);
+        return $this->hasMany(Category::class, 'boutique_id');
     }
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'boutique_id');
     }
 
     public function services(): HasMany
     {
-        return $this->hasMany(Service::class);
+        return $this->hasMany(Service::class, 'boutique_id');
     }
 
     public function customers(): HasMany
     {
-        return $this->hasMany(Customer::class);
+        return $this->hasMany(Customer::class, 'boutique_id');
     }
 
     public function cashRegisters(): HasMany
     {
-        return $this->hasMany(CashRegister::class);
+        return $this->hasMany(CashRegister::class, 'boutique_id');
     }
 
     public function sales(): HasMany
     {
-        return $this->hasMany(Sale::class);
+        return $this->hasMany(Sale::class, 'boutique_id');
     }
 }

@@ -24,10 +24,10 @@ class StockMovementController extends ApiController
         $this->authorize('viewAny', [StockMovement::class, $store]);
 
         $movements = StockMovement::query()
-            ->where('product_id', $product->id)
+            ->where('produit_id', $product->id)
             ->with('createdBy')
             ->latest('id')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(StockMovementResource::collection($movements));
     }
@@ -39,32 +39,32 @@ class StockMovementController extends ApiController
         $this->authorize('create', [StockMovement::class, $store, $type]);
 
         $userId = $request->user()?->id;
-        $reason = $request->input('reason');
+        $reason = $request->input('motif');
 
         try {
             $movement = match (true) {
                 $type === StockMovementType::Initial => $this->inventory->initializeStock(
                     $product,
-                    (string) $request->input('quantity'),
-                    $request->filled('minimum_quantity') ? (string) $request->input('minimum_quantity') : null,
+                    (string) $request->input('quantite'),
+                    $request->filled('quantite_minimum') ? (string) $request->input('quantite_minimum') : null,
                     $userId,
                     $reason,
                 ),
                 $type === StockMovementType::Stocktake => $this->inventory->stocktake(
                     $product,
-                    (string) $request->input('counted_quantity'),
+                    (string) $request->input('quantite_comptee'),
                     $userId,
                     $reason,
                 ),
-                $type->isEntry() => $this->inventory->addStock($product, $type, (string) $request->input('quantity'), $userId, $reason),
-                default => $this->inventory->removeStock($product, $type, (string) $request->input('quantity'), $userId, $reason),
+                $type->isEntry() => $this->inventory->addStock($product, $type, (string) $request->input('quantite'), $userId, $reason),
+                default => $this->inventory->removeStock($product, $type, (string) $request->input('quantite'), $userId, $reason),
             };
         } catch (StockAlreadyInitializedException $e) {
-            return $this->error($e->getMessage(), [], 422, 'STOCK_ALREADY_INITIALIZED');
+            return $this->error($e->getMessage(), [], 422, 'STOCK_DEJA_INITIALISE');
         } catch (StockNotInitializedException $e) {
-            return $this->error($e->getMessage(), [], 422, 'STOCK_NOT_INITIALIZED');
+            return $this->error($e->getMessage(), [], 422, 'STOCK_NON_INITIALISE');
         } catch (InsufficientStockException $e) {
-            return $this->error($e->getMessage(), [], 422, 'INSUFFICIENT_STOCK');
+            return $this->error($e->getMessage(), [], 422, 'STOCK_INSUFFISANT');
         }
 
         return $this->success(new StockMovementResource($movement), 'Mouvement de stock enregistré.', [], 201);

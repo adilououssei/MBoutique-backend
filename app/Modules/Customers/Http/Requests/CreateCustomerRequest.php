@@ -14,15 +14,15 @@ class CreateCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'nom' => ['required', 'string', 'max:255'],
             // No format imposed beyond "a string" — the platform isn't
             // limited to one country's phone numbering, see docs/customers.md.
-            'phone' => ['nullable', 'string', 'max:30'],
+            'telephone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'string', 'email', 'max:255'],
-            'company_name' => ['nullable', 'string', 'max:255'],
-            'address' => ['nullable', 'string', 'max:255'],
+            'nom_entreprise' => ['nullable', 'string', 'max:255'],
+            'adresse' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
+            'actif' => ['sometimes', 'boolean'],
         ];
     }
 }

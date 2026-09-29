@@ -15,7 +15,7 @@ class UpdateStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'minimum_quantity' => ['nullable', 'numeric', 'min:0'],
+            'quantite_minimum' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

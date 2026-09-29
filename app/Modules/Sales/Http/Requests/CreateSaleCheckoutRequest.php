@@ -26,16 +26,16 @@ class CreateSaleCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', TenantScopedRules::existsInCurrentStore('products')],
-            'items.*.pricing_mode' => ['required', Rule::enum(PricingMode::class)],
-            'items.*.quantity' => ['required', 'numeric', 'gt:0'],
-            'cash_register_id' => ['required', 'integer', TenantScopedRules::existsInCurrentStore('cash_registers')],
-            'customer_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('customers')],
+            'lignes' => ['required', 'array', 'min:1'],
+            'lignes.*.produit_id' => ['required', 'integer', TenantScopedRules::existsInCurrentStore('produits')],
+            'lignes.*.mode_prix' => ['required', Rule::enum(PricingMode::class)],
+            'lignes.*.quantite' => ['required', 'numeric', 'gt:0'],
+            'caisse_id' => ['required', 'integer', TenantScopedRules::existsInCurrentStore('caisses')],
+            'client_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('clients')],
             // Only cash is accepted in this phase — see PaymentMethod::acceptedForCheckout().
-            'payment_method' => ['sometimes', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::acceptedForCheckout()))],
-            'discount_amount' => ['nullable', 'numeric', 'min:0'],
-            'idempotency_key' => ['nullable', 'string', 'max:100'],
+            'mode_paiement' => ['sometimes', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::acceptedForCheckout()))],
+            'montant_remise' => ['nullable', 'numeric', 'min:0'],
+            'cle_idempotence' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

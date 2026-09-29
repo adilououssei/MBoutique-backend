@@ -12,9 +12,9 @@ use App\Modules\Tenancy\Services\StoreMembershipService;
 use App\Shared\Http\Controllers\ApiController;
 
 /**
- * Authorization here is via spatie permissions (store_users.view/manage),
+ * Authorization here is via spatie permissions (membres.voir/gerer),
  * checked by the 'permission:*' route middleware — not a Policy, since
- * this isn't "does this belong to the right store" (StoreUser::store_id
+ * this isn't "does this belong to the right store" (StoreUser::boutique_id
  * already guarantees that via BelongsToStore) but "is this action allowed
  * for this role", which is exactly what permissions answer.
  */
@@ -25,7 +25,7 @@ class StoreMemberController extends ApiController
     public function index(Store $store)
     {
         $members = StoreUser::with('user')
-            ->where('status', StoreUserStatus::Active->value)
+            ->where('statut', StoreUserStatus::Active->value)
             ->get();
 
         return $this->success(StoreUserResource::collection($members));

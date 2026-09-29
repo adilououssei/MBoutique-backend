@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * The only place that ever writes to `stocks.quantity` or creates a
+ * The only place that ever writes to `stocks.quantite` or creates a
  * StockMovement — see docs/inventory.md §"Service central". A future
  * Sales module decrementing stock on checkout must call removeStock()
  * with StockMovementType::Sale, never touch Stock directly (docs/inventory.md §14).
@@ -30,15 +30,15 @@ class InventoryService
         ?string $reason = null,
     ): StockMovement {
         return DB::transaction(function () use ($product, $quantity, $minimumQuantity, $createdByUserId, $reason) {
-            if (Stock::query()->where('product_id', $product->id)->exists()) {
-                throw new StockAlreadyInitializedException("Le stock de \"{$product->name}\" est déjà initialisé.");
+            if (Stock::query()->where('produit_id', $product->id)->exists()) {
+                throw new StockAlreadyInitializedException("Le stock de \"{$product->nom}\" est déjà initialisé.");
             }
 
             try {
                 $stock = Stock::create([
-                    'product_id' => $product->id,
-                    'quantity' => 0,
-                    'minimum_quantity' => $minimumQuantity,
+                    'produit_id' => $product->id,
+                    'quantite' => 0,
+                    'quantite_minimum' => $minimumQuantity,
                 ]);
             } catch (QueryException $e) {
                 // Closes the tiny window between the exists() check above
@@ -47,7 +47,7 @@ class InventoryService
                 // concurrent double-initialize into a clean 422 instead
                 // of a raw 500 from an unhandled QueryException.
                 throw $this->isUniqueConstraintViolation($e)
-                    ? new StockAlreadyInitializedException("Le stock de \"{$product->name}\" est déjà initialisé.")
+                    ? new StockAlreadyInitializedException("Le stock de \"{$product->nom}\" est déjà initialisé.")
                     : $e;
             }
 
@@ -64,7 +64,7 @@ class InventoryService
         ?string $reason = null,
     ): StockMovement {
         if (! $type->isEntry()) {
-            throw new InvalidArgumentException("{$type->value} is not an entry movement type.");
+            throw new InvalidArgumentException("{$type->value} n'est pas un type de mouvement d'entrée.");
         }
 
         return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason) {
@@ -87,14 +87,14 @@ class InventoryService
         ?Model $reference = null,
     ): StockMovement {
         if ($type->isEntry()) {
-            throw new InvalidArgumentException("{$type->value} is not an exit movement type.");
+            throw new InvalidArgumentException("{$type->value} n'est pas un type de mouvement de sortie.");
         }
 
         return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason, $reference) {
             $stock = $this->lockExistingStock($product);
 
-            if (bccomp((string) $stock->quantity, $quantity, 3) < 0) {
-                throw InsufficientStockException::forProduct($product, (string) $stock->quantity, $quantity);
+            if (bccomp((string) $stock->quantite, $quantity, 3) < 0) {
+                throw InsufficientStockException::forProduct($product, (string) $stock->quantite, $quantity);
             }
 
             return $this->applyDelta($stock, $product, $type, bcmul($quantity, '-1', 3), $reason, $createdByUserId, $reference);
@@ -111,7 +111,7 @@ class InventoryService
         return DB::transaction(function () use ($product, $countedQuantity, $createdByUserId, $reason) {
             $stock = $this->lockExistingStock($product);
 
-            $delta = bcsub($countedQuantity, (string) $stock->quantity, 3);
+            $delta = bcsub($countedQuantity, (string) $stock->quantite, 3);
 
             return $this->applyDelta($stock, $product, StockMovementType::Stocktake, $delta, $reason, $createdByUserId);
         });
@@ -122,7 +122,7 @@ class InventoryService
     {
         return DB::transaction(function () use ($product, $minimumQuantity) {
             $stock = $this->lockExistingStock($product);
-            $stock->update(['minimum_quantity' => $minimumQuantity]);
+            $stock->update(['quantite_minimum' => $minimumQuantity]);
 
             return $stock;
         });
@@ -130,10 +130,10 @@ class InventoryService
 
     private function lockExistingStock(Product $product): Stock
     {
-        $stock = Stock::query()->where('product_id', $product->id)->lockForUpdate()->first();
+        $stock = Stock::query()->where('produit_id', $product->id)->lockForUpdate()->first();
 
         if ($stock === null) {
-            throw new StockNotInitializedException("Le stock de \"{$product->name}\" n'a pas encore été initialisé.");
+            throw new StockNotInitializedException("Le stock de \"{$product->nom}\" n'a pas encore été initialisé.");
         }
 
         return $stock;
@@ -148,23 +148,23 @@ class InventoryService
         ?int $createdByUserId,
         ?Model $reference = null,
     ): StockMovement {
-        $before = (string) $stock->quantity;
+        $before = (string) $stock->quantite;
         $after = bcadd($before, $delta, 3);
 
         $movement = StockMovement::create([
             'stock_id' => $stock->id,
-            'product_id' => $product->id,
+            'produit_id' => $product->id,
             'type' => $type,
-            'quantity' => $delta,
-            'quantity_before' => $before,
-            'quantity_after' => $after,
-            'reason' => $reason,
+            'quantite' => $delta,
+            'quantite_avant' => $before,
+            'quantite_apres' => $after,
+            'motif' => $reason,
             'reference_type' => $reference?->getMorphClass(),
             'reference_id' => $reference?->getKey(),
-            'created_by_user_id' => $createdByUserId,
+            'cree_par_id' => $createdByUserId,
         ]);
 
-        $stock->update(['quantity' => $after]);
+        $stock->update(['quantite' => $after]);
 
         return $movement->setRelation('stock', $stock)->setRelation('product', $product);
     }

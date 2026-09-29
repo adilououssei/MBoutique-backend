@@ -8,6 +8,7 @@ use App\Modules\Tenancy\Models\Store;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\CashRegister\CashMovementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * this module — a mistake is corrected with a new `adjustment` movement,
  * not an edit of this one. Only CashRegisterService creates these.
  */
-#[Fillable(['cash_register_session_id', 'type', 'amount', 'balance_before', 'balance_after', 'reason', 'reference_type', 'reference_id', 'created_by_user_id'])]
+#[Fillable(['session_caisse_id', 'type', 'montant', 'solde_avant', 'solde_apres', 'motif', 'reference_type', 'reference_id', 'cree_par_id'])]
+#[Table('mouvements_caisse')]
 class CashMovement extends Model
 {
     use BelongsToStore, HasFactory;
@@ -27,9 +29,9 @@ class CashMovement extends Model
     {
         return [
             'type' => CashMovementType::class,
-            'amount' => 'decimal:2',
-            'balance_before' => 'decimal:2',
-            'balance_after' => 'decimal:2',
+            'montant' => 'decimal:2',
+            'solde_avant' => 'decimal:2',
+            'solde_apres' => 'decimal:2',
         ];
     }
 
@@ -40,12 +42,12 @@ class CashMovement extends Model
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'boutique_id');
     }
 
     public function session(): BelongsTo
     {
-        return $this->belongsTo(CashRegisterSession::class, 'cash_register_session_id');
+        return $this->belongsTo(CashRegisterSession::class, 'session_caisse_id');
     }
 
     public function reference(): MorphTo
@@ -55,6 +57,6 @@ class CashMovement extends Model
 
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by_user_id');
+        return $this->belongsTo(User::class, 'cree_par_id');
     }
 }

@@ -15,16 +15,16 @@ class UpdateServiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'nom' => ['sometimes', 'required', 'string', 'max:255'],
             'slug' => [
                 'sometimes', 'required', 'string', 'max:255', 'alpha_dash',
                 TenantScopedRules::uniqueInCurrentStore('services', 'slug')->ignore($this->route('service')),
             ],
             'description' => ['nullable', 'string'],
-            'category_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('categories')],
-            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'duration_minutes' => ['nullable', 'integer', 'min:1'],
-            'is_active' => ['sometimes', 'boolean'],
+            'categorie_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('categories')],
+            'prix' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'duree_minutes' => ['nullable', 'integer', 'min:1'],
+            'actif' => ['sometimes', 'boolean'],
         ];
     }
 }

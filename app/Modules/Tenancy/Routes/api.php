@@ -22,27 +22,27 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::get('stores', [StoreController::class, 'mine']);
+    Route::get('boutiques', [StoreController::class, 'mine']);
 
-    Route::prefix('businesses')->group(function () {
+    Route::prefix('entreprises')->group(function () {
         Route::get('/', [BusinessController::class, 'index']);
         Route::post('/', [BusinessController::class, 'store']);
 
         Route::get('{business}', [BusinessController::class, 'show']);
-        Route::post('{business}/users', [BusinessUserController::class, 'store']);
+        Route::post('{business}/utilisateurs', [BusinessUserController::class, 'store']);
 
-        Route::get('{business}/stores', [StoreController::class, 'index']);
-        Route::post('{business}/stores', [StoreController::class, 'store']);
+        Route::get('{business}/boutiques', [StoreController::class, 'index']);
+        Route::post('{business}/boutiques', [StoreController::class, 'store']);
     });
 
-    Route::prefix('stores/{store}')->middleware('store')->group(function () {
+    Route::prefix('boutiques/{store}')->middleware('store')->group(function () {
         Route::get('/', [StoreController::class, 'show']);
 
-        Route::get('members', [StoreMemberController::class, 'index'])
-            ->middleware('permission:store_users.view');
-        Route::post('members', [StoreMemberController::class, 'store'])
-            ->middleware('permission:store_users.manage');
-        Route::delete('members/{user}', [StoreMemberController::class, 'destroy'])
-            ->middleware('permission:store_users.manage');
+        Route::get('membres', [StoreMemberController::class, 'index'])
+            ->middleware('permission:membres.voir');
+        Route::post('membres', [StoreMemberController::class, 'store'])
+            ->middleware('permission:membres.gerer');
+        Route::delete('membres/{user}', [StoreMemberController::class, 'destroy'])
+            ->middleware('permission:membres.gerer');
     });
 });

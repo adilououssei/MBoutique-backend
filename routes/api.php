@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/ping', fn () => response()->json(['success' => true, 'data' => ['pong' => true]]));
+Route::get('/ping', fn () => response()->json(['succes' => true, 'donnees' => ['pong' => true]]));
 
 require app_path('Modules/Auth/Routes/api.php');
 require app_path('Modules/Tenancy/Routes/api.php');

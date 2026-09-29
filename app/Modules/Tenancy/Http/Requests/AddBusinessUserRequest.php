@@ -17,10 +17,10 @@ class AddBusinessUserRequest extends FormRequest
     {
         return [
             // Users are platform-wide, not tenant-scoped: a plain
-            // exists:users,email is correct here, no store-scoping needed
+            // exists:utilisateurs,email is correct here, no store-scoping needed
             // (contrast with docs/multi-tenancy.md Couche 5, which applies
             // to references to *tenant-scoped* resources).
-            'email' => ['required', 'string', 'email', 'exists:users,email'],
+            'email' => ['required', 'string', 'email', 'exists:utilisateurs,email'],
             'role' => ['required', Rule::in([BusinessUserRole::Owner->value, BusinessUserRole::Admin->value])],
         ];
     }

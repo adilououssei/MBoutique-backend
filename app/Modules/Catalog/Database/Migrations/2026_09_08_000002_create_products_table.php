@@ -8,40 +8,40 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('produits', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
             // restrictOnDelete: a category with products should be
             // deactivated, not deleted out from under them — see
             // docs/database.md §0 typing/delete conventions.
-            $table->foreignId('category_id')->nullable()->constrained()->restrictOnDelete();
-            $table->string('name');
+            $table->foreignId('categorie_id')->nullable()->constrained()->restrictOnDelete();
+            $table->string('nom');
             $table->string('slug');
             $table->text('description')->nullable();
             $table->string('sku')->nullable();
-            $table->string('barcode')->nullable();
-            $table->string('unit')->default('piece');
-            $table->decimal('purchase_price', 12, 2)->nullable();
+            $table->string('code_barres')->nullable();
+            $table->string('unite')->default('piece');
+            $table->decimal('prix_achat', 12, 2)->nullable();
             // Détail/Gros: two independent price slots, each guarded by
             // its own *_enabled flag. Enforced at the FormRequest layer
             // (CreateProductRequest/UpdateProductRequest) — see docs/catalog.md.
-            $table->boolean('retail_enabled')->default(false);
-            $table->decimal('retail_price', 12, 2)->nullable();
-            $table->boolean('wholesale_enabled')->default(false);
-            $table->decimal('wholesale_price', 12, 2)->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('vente_detail_active')->default(false);
+            $table->decimal('prix_detail', 12, 2)->nullable();
+            $table->boolean('vente_gros_active')->default(false);
+            $table->decimal('prix_gros', 12, 2)->nullable();
+            $table->boolean('actif')->default(true);
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['store_id', 'slug']);
-            $table->unique(['store_id', 'sku']);
-            $table->unique(['store_id', 'barcode']);
-            $table->index('category_id');
+            $table->unique(['boutique_id', 'slug']);
+            $table->unique(['boutique_id', 'sku']);
+            $table->unique(['boutique_id', 'code_barres']);
+            $table->index('categorie_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('produits');
     }
 };

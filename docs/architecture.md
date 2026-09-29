@@ -2,7 +2,7 @@
 
 > **Mise à jour (audit architectural du 2026-09-06)** : ce document reste valable dans ses grandes lignes ; l'audit ([audit-2026-09.md](audit-2026-09.md)) a précisé que `Tenancy` porte aussi désormais `BusinessUser` (autorisation business-level, distincte de l'appartenance à une boutique — voir [database.md](database.md) §2 et [permissions.md](permissions.md) §7), et a assoupli la règle de dépendance inter-modules pour distinguer lecture et écriture (voir [modules.md](modules.md)).
 >
-> **Mise à jour (Phase 2, 2026-09-07)** : le module `Features` (BusinessDomain, Feature, DomainFeature, StoreFeatureOverride, FeatureDependency, `FeatureGate`) et une version minimale de `Subscriptions` (Plan, Subscription, `SubscriptionLimits`) sont implémentés — voir [feature-gate.md](feature-gate.md). `Store` dépend maintenant de `Features` (`business_domain_id`), confirmant l'ordre de dépendance déjà documenté dans [modules.md](modules.md) (`Tenancy`/`Authorization`/`Features` dépendus par tous).
+> **Mise à jour (Phase 2, 2026-09-07)** : le module `Features` (BusinessDomain, Feature, DomainFeature, StoreFeatureOverride, FeatureDependency, `FeatureGate`) et une version minimale de `Subscriptions` (Plan, Subscription, `SubscriptionLimits`) sont implémentés — voir [feature-gate.md](feature-gate.md). `Store` dépend maintenant de `Features` (`domaine_activite_id`), confirmant l'ordre de dépendance déjà documenté dans [modules.md](modules.md) (`Tenancy`/`Authorization`/`Features` dépendus par tous).
 >
 > **Mise à jour (Phase 3, 2026-09-08)** : premier module métier vertical, `Catalog` (Category, Product, Service, contrat `Sellable` dans `Shared/Contracts`) — voir [catalog.md](catalog.md). Confirme en conditions réelles le pipeline complet documenté depuis l'audit : `auth:sanctum → store → feature:* → Policy (store + permission) → FormRequest (validation scopée) → Resource`. Premier consommateur réel de `TenantScopedRules` et des scoped route bindings (Couche 6), jusque-là construits mais non exercés faute d'endpoint.
 
@@ -79,7 +79,7 @@ Requête HTTP  ->  routes/api.php (préfixe /v1)
              ->  middleware `auth:sanctum` (Auth module)
              ->  middleware `store` (Tenancy: résout {store}, vérifie l'appartenance, alimente TenantContext)
              ->  middleware `feature:products` (Features: la boutique a-t-elle cette capacité ?)
-             ->  middleware `permission:products.view` (Authorization, scopé au store courant via team_id)
+             ->  middleware `permission:produits.voir` (Authorization, scopé au store courant via team_id)
              ->  Controller du module (extends Shared\Http\Controllers\ApiController)
              ->  FormRequest (validation)
              ->  Policy (autorisation fine sur l'instance, ex: "cette vente appartient-elle à ce store")
@@ -97,8 +97,8 @@ Ce pipeline est décrit en détail dans [multi-tenancy.md](multi-tenancy.md) (r�
 |---|---|---|
 | Framework | Laravel 13, API-only (pas de `web` applicatif) | Le frontend est un client React/mobile séparé |
 | Authentification | Laravel Sanctum (tokens personnels) | Standard Laravel pour SPA/mobile, pas besoin d'OAuth complet |
-| RBAC | spatie/laravel-permission, mode `teams` avec `team_foreign_key = store_id` | Rôles/permissions nativement scopés par boutique sans réinventer une table pivot ; voir [permissions.md](permissions.md) pour les alternatives évaluées |
-| Isolation tenant | Colonne `store_id` + Global Scope Eloquent (`BelongsToStore`) + middleware de résolution, jamais de base de données séparée par tenant | Voir [multi-tenancy.md](multi-tenancy.md) §"Options évaluées" |
+| RBAC | spatie/laravel-permission, mode `teams` avec `team_foreign_key = boutique_id` | Rôles/permissions nativement scopés par boutique sans réinventer une table pivot ; voir [permissions.md](permissions.md) pour les alternatives évaluées |
+| Isolation tenant | Colonne `boutique_id` + Global Scope Eloquent (`BelongsToStore`) + middleware de résolution, jamais de base de données séparée par tenant | Voir [multi-tenancy.md](multi-tenancy.md) §"Options évaluées" |
 | Base de données | MySQL unique, partagée entre tenants (shared database, shared schema) | Cohérent avec le volume attendu (PME), simplifie les migrations et les rapports cross-store pour un même Business |
 
 ## 7. Ce que cette architecture NE couvre pas encore

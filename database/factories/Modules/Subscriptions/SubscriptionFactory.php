@@ -17,11 +17,11 @@ class SubscriptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'business_id' => Business::factory(),
-            'plan_id' => Plan::factory(),
-            'status' => 'active',
-            'current_period_starts_at' => now(),
-            'current_period_ends_at' => now()->addMonth(),
+            'entreprise_id' => Business::factory(),
+            'forfait_id' => Plan::factory(),
+            'statut' => 'actif',
+            'debut_periode_le' => now(),
+            'fin_periode_le' => now()->addMonth(),
         ];
     }
 }

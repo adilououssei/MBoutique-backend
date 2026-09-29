@@ -28,13 +28,13 @@ class StockController extends ApiController
 
         $stocks = Stock::query()
             ->with('product')
-            ->when($request->filled('search'), fn ($q) => $q->whereHas(
+            ->when($request->filled('recherche'), fn ($q) => $q->whereHas(
                 'product',
-                fn ($q) => $q->where('name', 'like', '%'.$request->string('search').'%')
+                fn ($q) => $q->where('nom', 'like', '%'.$request->string('recherche').'%')
             ))
-            ->when($request->boolean('low_stock'), fn ($q) => $q->whereNotNull('minimum_quantity')->whereColumn('quantity', '<=', 'minimum_quantity'))
+            ->when($request->boolean('stock_faible'), fn ($q) => $q->whereNotNull('quantite_minimum')->whereColumn('quantite', '<=', 'quantite_minimum'))
             ->orderBy('id')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(StockResource::collection($stocks));
     }
@@ -44,8 +44,8 @@ class StockController extends ApiController
     {
         $this->authorize('viewAny', [Stock::class, $store]);
 
-        $stock = Stock::query()->where('product_id', $product->id)->first()
-            ?? Stock::make(['product_id' => $product->id, 'quantity' => 0]);
+        $stock = Stock::query()->where('produit_id', $product->id)->first()
+            ?? Stock::make(['produit_id' => $product->id, 'quantite' => 0]);
 
         $stock->setRelation('product', $product);
 
@@ -57,9 +57,9 @@ class StockController extends ApiController
         $this->authorize('update', [Stock::class, $store]);
 
         try {
-            $stock = $this->inventory->updateMinimumQuantity($product, $request->input('minimum_quantity'));
+            $stock = $this->inventory->updateMinimumQuantity($product, $request->input('quantite_minimum'));
         } catch (StockNotInitializedException $e) {
-            return $this->error($e->getMessage(), [], 404, 'STOCK_NOT_INITIALIZED');
+            return $this->error($e->getMessage(), [], 404, 'STOCK_NON_INITIALISE');
         }
 
         $stock->setRelation('product', $product);

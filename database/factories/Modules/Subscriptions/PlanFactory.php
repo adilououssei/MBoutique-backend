@@ -16,18 +16,18 @@ class PlanFactory extends Factory
     {
         return [
             'code' => fake()->unique()->slug(2),
-            'name' => fake()->words(2, true),
-            'price_monthly' => 0,
-            'price_yearly' => null,
-            'max_stores' => 1,
-            'max_users_per_store' => 3,
-            'max_products_per_store' => 100,
-            'is_active' => true,
+            'nom' => fake()->words(2, true),
+            'prix_mensuel' => 0,
+            'prix_annuel' => null,
+            'max_boutiques' => 1,
+            'max_utilisateurs_par_boutique' => 3,
+            'max_produits_par_boutique' => 100,
+            'actif' => true,
         ];
     }
 
     public function unlimitedStores(): static
     {
-        return $this->state(['max_stores' => null]);
+        return $this->state(['max_boutiques' => null]);
     }
 }

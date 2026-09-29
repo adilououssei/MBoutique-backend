@@ -9,14 +9,14 @@ use App\Modules\Auth\Http\Controllers\RegisteredUserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
-    Route::post('register', [RegisteredUserController::class, 'store']);
-    Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:login');
-    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->middleware('throttle:6,1');
-    Route::post('reset-password', [NewPasswordController::class, 'store'])->middleware('throttle:6,1');
+    Route::post('inscription', [RegisteredUserController::class, 'store']);
+    Route::post('connexion', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:login');
+    Route::post('mot-de-passe-oublie', [PasswordResetLinkController::class, 'store'])->middleware('throttle:6,1');
+    Route::post('reinitialiser-mot-de-passe', [NewPasswordController::class, 'store'])->middleware('throttle:6,1');
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('logout', [AuthenticatedSessionController::class, 'destroy']);
-        Route::get('me', [CurrentUserController::class, 'show']);
-        Route::put('password', [PasswordController::class, 'update']);
+        Route::post('deconnexion', [AuthenticatedSessionController::class, 'destroy']);
+        Route::get('moi', [CurrentUserController::class, 'show']);
+        Route::put('mot-de-passe', [PasswordController::class, 'update']);
     });
 });

@@ -14,18 +14,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('stores', function (Blueprint $table) {
-            $table->foreignId('business_domain_id')
-                ->after('business_id')
-                ->constrained()
+        Schema::table('boutiques', function (Blueprint $table) {
+            $table->foreignId('domaine_activite_id')
+                ->after('entreprise_id')
+                ->constrained('domaines_activite')
                 ->restrictOnDelete();
         });
     }
 
     public function down(): void
     {
-        Schema::table('stores', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('business_domain_id');
+        Schema::table('boutiques', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('domaine_activite_id');
         });
     }
 };

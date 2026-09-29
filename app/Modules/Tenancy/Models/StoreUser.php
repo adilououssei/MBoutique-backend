@@ -7,19 +7,21 @@ use App\Modules\Tenancy\Enums\StoreUserStatus;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\Tenancy\StoreUserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Membership of a User in a Store, including pending invitations.
- * The existence of an `active` row here is what Couche 1 of
+ * The existence of an `actif` row here is what Couche 1 of
  * docs/multi-tenancy.md checks before granting access to a store.
  *
  * Uses BelongsToStore: this is the one model in this phase with a real
- * `store_id` column representing tenant-scoped data.
+ * `boutique_id` column representing tenant-scoped data.
  */
-#[Fillable(['store_id', 'user_id', 'status', 'invited_by_user_id', 'invited_at', 'joined_at'])]
+#[Fillable(['boutique_id', 'utilisateur_id', 'statut', 'invite_par_id', 'invite_le', 'rejoint_le'])]
+#[Table('utilisateurs_boutique')]
 class StoreUser extends Model
 {
     use BelongsToStore, HasFactory;
@@ -32,29 +34,29 @@ class StoreUser extends Model
     protected function casts(): array
     {
         return [
-            'status' => StoreUserStatus::class,
-            'invited_at' => 'datetime',
-            'joined_at' => 'datetime',
+            'statut' => StoreUserStatus::class,
+            'invite_le' => 'datetime',
+            'rejoint_le' => 'datetime',
         ];
     }
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'boutique_id');
     }
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'utilisateur_id');
     }
 
     public function invitedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'invited_by_user_id');
+        return $this->belongsTo(User::class, 'invite_par_id');
     }
 
     public function isActive(): bool
     {
-        return $this->status === StoreUserStatus::Active;
+        return $this->statut === StoreUserStatus::Active;
     }
 }

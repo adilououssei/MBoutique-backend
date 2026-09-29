@@ -16,13 +16,13 @@ class BusinessFactory extends Factory
     public function definition(): array
     {
         return [
-            'owner_user_id' => User::factory(),
-            'name' => fake()->company(),
-            'legal_name' => null,
-            'country' => 'CI',
-            'currency' => 'XOF',
-            'timezone' => 'Africa/Abidjan',
-            'status' => 'active',
+            'proprietaire_id' => User::factory(),
+            'nom' => fake()->company(),
+            'raison_sociale' => null,
+            'pays' => 'CI',
+            'devise' => 'XOF',
+            'fuseau_horaire' => 'Africa/Abidjan',
+            'statut' => 'active',
         ];
     }
 }

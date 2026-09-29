@@ -14,11 +14,18 @@ class NewPasswordController extends ApiController
 {
     public function store(ResetPasswordRequest $request)
     {
+        // Laravel's password broker expects its own English credential
+        // keys (email/token/password) — the French API fields are mapped
+        // onto them here, the only place the broker is called.
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            [
+                'email' => $request->validated('email'),
+                'token' => $request->validated('jeton'),
+                'password' => $request->validated('mot_de_passe'),
+            ],
             function ($user) use ($request) {
                 $user->forceFill([
-                    'password' => Hash::make($request->validated('password')),
+                    'password' => Hash::make($request->validated('mot_de_passe')),
                     'remember_token' => Str::random(60),
                 ])->save();
 

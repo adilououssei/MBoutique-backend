@@ -15,9 +15,9 @@ class LogoutTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('test')->plainTextToken;
 
-        $response = $this->withToken($token)->postJson('/api/auth/logout');
+        $response = $this->withToken($token)->postJson('/api/auth/deconnexion');
 
-        $response->assertStatus(200)->assertJsonPath('success', true);
+        $response->assertStatus(200)->assertJsonPath('succes', true);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
@@ -27,7 +27,7 @@ class LogoutTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('test')->plainTextToken;
 
-        $this->withToken($token)->postJson('/api/auth/logout');
+        $this->withToken($token)->postJson('/api/auth/deconnexion');
 
         // The 'sanctum' guard instance memoizes the resolved user for its
         // own lifetime; nothing resets that between two calls within one
@@ -37,11 +37,11 @@ class LogoutTest extends TestCase
         // pre-logout resolution.
         $this->app->make('auth')->forgetGuards();
 
-        $this->withToken($token)->getJson('/api/auth/me')->assertStatus(401);
+        $this->withToken($token)->getJson('/api/auth/moi')->assertStatus(401);
     }
 
     public function test_a_guest_cannot_logout(): void
     {
-        $this->postJson('/api/auth/logout')->assertStatus(401);
+        $this->postJson('/api/auth/deconnexion')->assertStatus(401);
     }
 }

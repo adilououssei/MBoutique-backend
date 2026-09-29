@@ -18,13 +18,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * InventoryService; only `minimum_quantity` (a threshold, not a ledger
  * fact) is ever updated directly, via StockController::update().
  */
-#[Fillable(['product_id', 'quantity', 'minimum_quantity'])]
+#[Fillable(['produit_id', 'quantite', 'quantite_minimum'])]
 class Stock extends Model
 {
     use BelongsToStore, HasFactory;
 
     protected $attributes = [
-        'quantity' => 0,
+        'quantite' => 0,
     ];
 
     protected static function newFactory(): StockFactory
@@ -35,28 +35,28 @@ class Stock extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'decimal:3',
-            'minimum_quantity' => 'decimal:3',
+            'quantite' => 'decimal:3',
+            'quantite_minimum' => 'decimal:3',
         ];
     }
 
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'boutique_id');
     }
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'produit_id');
     }
 
     public function movements(): HasMany
     {
-        return $this->hasMany(StockMovement::class);
+        return $this->hasMany(StockMovement::class, 'stock_id');
     }
 
     public function isLowStock(): bool
     {
-        return $this->minimum_quantity !== null && $this->quantity <= $this->minimum_quantity;
+        return $this->quantite_minimum !== null && $this->quantite <= $this->quantite_minimum;
     }
 }

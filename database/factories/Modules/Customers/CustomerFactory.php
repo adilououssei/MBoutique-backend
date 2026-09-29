@@ -17,27 +17,27 @@ class CustomerFactory extends Factory
     public function definition(): array
     {
         return [
-            'store_id' => Store::factory(),
-            'name' => fake()->name(),
-            'phone' => fake()->phoneNumber(),
+            'boutique_id' => Store::factory(),
+            'nom' => fake()->name(),
+            'telephone' => fake()->phoneNumber(),
             'email' => fake()->optional()->safeEmail(),
-            'company_name' => null,
-            'address' => fake()->optional()->address(),
+            'nom_entreprise' => null,
+            'adresse' => fake()->optional()->address(),
             'notes' => fake()->optional()->sentence(),
-            'is_active' => true,
+            'actif' => true,
         ];
     }
 
     public function professional(): static
     {
         return $this->state(fn () => [
-            'company_name' => fake()->company(),
+            'nom_entreprise' => fake()->company(),
         ]);
     }
 
     public function withoutPhone(): static
     {
-        return $this->state(fn () => ['phone' => null]);
+        return $this->state(fn () => ['telephone' => null]);
     }
 
     public function withoutEmail(): static

@@ -20,16 +20,16 @@ class StoreFactory extends Factory
         $name = fake()->unique()->company();
 
         return [
-            'business_id' => Business::factory(),
-            'business_domain_id' => BusinessDomain::factory(),
-            'name' => $name,
+            'entreprise_id' => Business::factory(),
+            'domaine_activite_id' => BusinessDomain::factory(),
+            'nom' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(6)),
-            'address' => fake()->address(),
-            'phone' => fake()->phoneNumber(),
-            'currency' => 'XOF',
-            'timezone' => 'Africa/Abidjan',
-            'status' => 'active',
-            'settings' => [],
+            'adresse' => fake()->address(),
+            'telephone' => fake()->phoneNumber(),
+            'devise' => 'XOF',
+            'fuseau_horaire' => 'Africa/Abidjan',
+            'statut' => 'active',
+            'parametres' => [],
         ];
     }
 }

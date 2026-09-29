@@ -17,12 +17,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('stores/{store}')->group(function () {
-    Route::middleware('feature:inventory')->prefix('inventory')->name('inventory.')->group(function () {
+Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques/{store}')->group(function () {
+    Route::middleware('feature:stock')->prefix('stocks')->name('stocks.')->group(function () {
         Route::get('/', [StockController::class, 'index'])->name('index');
         Route::get('/{product}', [StockController::class, 'show'])->name('show');
         Route::put('/{product}', [StockController::class, 'update'])->name('update');
-        Route::get('/{product}/movements', [StockMovementController::class, 'index'])->name('movements.index');
-        Route::post('/{product}/movements', [StockMovementController::class, 'store'])->name('movements.store');
+        Route::get('/{product}/mouvements', [StockMovementController::class, 'index'])->name('mouvements.index');
+        Route::post('/{product}/mouvements', [StockMovementController::class, 'store'])->name('mouvements.store');
     });
 });

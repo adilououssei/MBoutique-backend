@@ -23,12 +23,12 @@ class BusinessService
             // correct escape hatch for this service's own trusted value,
             // as opposed to widening $fillable for everyone.
             $business = new Business($data);
-            $business->forceFill(['owner_user_id' => $owner->id]);
+            $business->forceFill(['proprietaire_id' => $owner->id]);
             $business->save();
 
             BusinessUser::create([
-                'business_id' => $business->id,
-                'user_id' => $owner->id,
+                'entreprise_id' => $business->id,
+                'utilisateur_id' => $owner->id,
                 'role' => BusinessUserRole::Owner,
             ]);
 

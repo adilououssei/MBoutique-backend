@@ -21,9 +21,9 @@ class SalesServiceProvider extends ServiceProvider
 
         // Sale is now a real `reference_type` on StockMovement/CashMovement
         // — registered here (not enforceMorphMap, see CatalogServiceProvider's
-        // note on why) so those rows store 'sale', never the full class name.
+        // note on why) so those rows store 'vente', never the full class name.
         Relation::morphMap([
-            'sale' => Sale::class,
+            'vente' => Sale::class,
         ]);
     }
 }

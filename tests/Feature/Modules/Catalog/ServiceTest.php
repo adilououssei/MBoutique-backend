@@ -15,63 +15,63 @@ class ServiceTest extends TestCase
 
     public function test_owner_can_create_a_service(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($owner);
 
-        $response = $this->postJson("/api/stores/{$store->id}/services", [
-            'name' => 'Coupe homme',
-            'price' => 2000,
-            'duration_minutes' => 30,
+        $response = $this->postJson("/api/boutiques/{$store->id}/services", [
+            'nom' => 'Coupe homme',
+            'prix' => 2000,
+            'duree_minutes' => 30,
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.name', 'Coupe homme')
-            ->assertJsonPath('data.duration_minutes', 30);
+            ->assertJsonPath('donnees.nom', 'Coupe homme')
+            ->assertJsonPath('donnees.duree_minutes', 30);
     }
 
     public function test_price_is_stored_as_an_exact_decimal(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($owner);
 
-        $id = $this->postJson("/api/stores/{$store->id}/services", ['name' => 'Manucure', 'price' => 1500.50])->json('data.id');
+        $id = $this->postJson("/api/boutiques/{$store->id}/services", ['nom' => 'Manucure', 'prix' => 1500.50])->json('donnees.id');
 
-        $this->assertSame('1500.50', Service::find($id)->price);
+        $this->assertSame('1500.50', Service::find($id)->prix);
     }
 
     public function test_duration_minutes_is_nullable(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($owner);
 
-        $response = $this->postJson("/api/stores/{$store->id}/services", ['name' => 'Consultation', 'price' => 5000]);
+        $response = $this->postJson("/api/boutiques/{$store->id}/services", ['nom' => 'Consultation', 'prix' => 5000]);
 
-        $response->assertStatus(201)->assertJsonPath('data.duration_minutes', null);
+        $response->assertStatus(201)->assertJsonPath('donnees.duree_minutes', null);
     }
 
     public function test_owner_can_list_read_update_and_delete_a_service(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         $service = Service::factory()->for($store)->create();
         Sanctum::actingAs($owner);
 
-        $this->getJson("/api/stores/{$store->id}/services")->assertStatus(200)->assertJsonCount(1, 'data');
-        $this->getJson("/api/stores/{$store->id}/services/{$service->id}")->assertStatus(200);
+        $this->getJson("/api/boutiques/{$store->id}/services")->assertStatus(200)->assertJsonCount(1, 'donnees');
+        $this->getJson("/api/boutiques/{$store->id}/services/{$service->id}")->assertStatus(200);
 
-        $this->putJson("/api/stores/{$store->id}/services/{$service->id}", ['name' => 'Renamed'])
-            ->assertStatus(200)->assertJsonPath('data.name', 'Renamed');
+        $this->putJson("/api/boutiques/{$store->id}/services/{$service->id}", ['nom' => 'Renamed'])
+            ->assertStatus(200)->assertJsonPath('donnees.nom', 'Renamed');
 
-        $this->deleteJson("/api/stores/{$store->id}/services/{$service->id}")->assertStatus(200);
+        $this->deleteJson("/api/boutiques/{$store->id}/services/{$service->id}")->assertStatus(200);
         $this->assertSoftDeleted('services', ['id' => $service->id]);
     }
 
     public function test_price_is_required(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($owner);
 
-        $this->postJson("/api/stores/{$store->id}/services", ['name' => 'Consultation'])
-            ->assertStatus(422)->assertJsonValidationErrors('price');
+        $this->postJson("/api/boutiques/{$store->id}/services", ['nom' => 'Consultation'])
+            ->assertStatus(422)->assertJsonValidationErrors('prix', 'erreurs');
     }
 
     public function test_a_category_belonging_to_another_store_is_rejected(): void
@@ -79,14 +79,14 @@ class ServiceTest extends TestCase
         ['store' => $storeA] = $this->createStoreWithFeatures(['services', 'categories']);
         $categoryOfStoreA = Category::factory()->for($storeA)->create();
 
-        ['owner' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($ownerB);
 
-        $response = $this->postJson("/api/stores/{$storeB->id}/services", [
-            'name' => 'Coupe', 'price' => 100, 'category_id' => $categoryOfStoreA->id,
+        $response = $this->postJson("/api/boutiques/{$storeB->id}/services", [
+            'nom' => 'Coupe', 'prix' => 100, 'categorie_id' => $categoryOfStoreA->id,
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('category_id');
+        $response->assertStatus(422)->assertJsonValidationErrors('categorie_id', 'erreurs');
     }
 
     public function test_a_member_of_another_store_cannot_reach_this_services_store(): void
@@ -94,9 +94,9 @@ class ServiceTest extends TestCase
         ['store' => $storeA] = $this->createStoreWithFeatures(['services']);
         $service = Service::factory()->for($storeA)->create();
 
-        ['owner' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $ownerB, 'store' => $storeB] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($ownerB);
 
-        $this->getJson("/api/stores/{$storeB->id}/services/{$service->id}")->assertStatus(404);
+        $this->getJson("/api/boutiques/{$storeB->id}/services/{$service->id}")->assertStatus(404);
     }
 }

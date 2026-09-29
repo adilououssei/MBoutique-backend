@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('feature_dependencies', function (Blueprint $table) {
+        Schema::create('dependances_fonctionnalites', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('feature_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('depends_on_feature_id')->constrained('features')->restrictOnDelete();
+            $table->foreignId('fonctionnalite_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('depend_de_fonctionnalite_id')->constrained('fonctionnalites')->restrictOnDelete();
             $table->timestamps();
 
-            $table->unique(['feature_id', 'depends_on_feature_id']);
+            $table->unique(['fonctionnalite_id', 'depend_de_fonctionnalite_id'], 'dependances_fonctionnalites_unique');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('feature_dependencies');
+        Schema::dropIfExists('dependances_fonctionnalites');
     }
 };

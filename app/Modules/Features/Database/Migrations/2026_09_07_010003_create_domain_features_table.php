@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('domain_features', function (Blueprint $table) {
+        Schema::create('fonctionnalites_domaine', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_domain_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('feature_id')->constrained()->cascadeOnDelete();
-            $table->boolean('is_default_enabled')->default(true);
+            $table->foreignId('domaine_activite_id')->constrained('domaines_activite')->cascadeOnDelete();
+            $table->foreignId('fonctionnalite_id')->constrained()->cascadeOnDelete();
+            $table->boolean('active_par_defaut')->default(true);
             $table->timestamps();
 
-            $table->unique(['business_domain_id', 'feature_id']);
+            $table->unique(['domaine_activite_id', 'fonctionnalite_id'], 'fonctionnalites_domaine_unique');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('domain_features');
+        Schema::dropIfExists('fonctionnalites_domaine');
     }
 };

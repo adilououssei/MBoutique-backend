@@ -17,9 +17,9 @@ class BusinessUserFactory extends Factory
     public function definition(): array
     {
         return [
-            'business_id' => Business::factory(),
-            'user_id' => User::factory(),
-            'role' => 'owner',
+            'entreprise_id' => Business::factory(),
+            'utilisateur_id' => User::factory(),
+            'role' => 'proprietaire',
         ];
     }
 }

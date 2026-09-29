@@ -13,14 +13,14 @@ class PasswordController extends ApiController
     {
         $user = $request->user();
 
-        if (! Hash::check($request->validated('current_password'), $user->password)) {
+        if (! Hash::check($request->validated('mot_de_passe_actuel'), $user->password)) {
             throw ValidationException::withMessages([
-                'current_password' => ['Le mot de passe actuel est incorrect.'],
+                'mot_de_passe_actuel' => ['Le mot de passe actuel est incorrect.'],
             ]);
         }
 
         $user->forceFill([
-            'password' => Hash::make($request->validated('password')),
+            'password' => Hash::make($request->validated('mot_de_passe')),
         ])->save();
 
         return $this->success(null, 'Mot de passe mis à jour.');

@@ -15,12 +15,12 @@ class UpdateCashRegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'nom' => ['sometimes', 'required', 'string', 'max:255'],
             'code' => [
                 'nullable', 'string', 'max:100',
-                TenantScopedRules::uniqueInCurrentStore('cash_registers', 'code')->ignore($this->route('cashRegister')),
+                TenantScopedRules::uniqueInCurrentStore('caisses', 'code')->ignore($this->route('cashRegister')),
             ],
-            'is_active' => ['sometimes', 'boolean'],
+            'actif' => ['sometimes', 'boolean'],
         ];
     }
 }

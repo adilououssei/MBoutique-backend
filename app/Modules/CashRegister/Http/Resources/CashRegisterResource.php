@@ -15,12 +15,12 @@ class CashRegisterResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'nom' => $this->nom,
             'code' => $this->code,
-            'is_active' => $this->is_active,
-            'is_open' => $this->isOpen(),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'actif' => $this->actif,
+            'est_ouverte' => $this->isOpen(),
+            'cree_le' => $this->created_at,
+            'modifie_le' => $this->updated_at,
         ];
     }
 }

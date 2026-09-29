@@ -36,9 +36,9 @@ class ResolveStoreContext
 
         $user = $request->user();
 
-        $isActiveMember = StoreUser::where('store_id', $store->id)
-            ->where('user_id', $user->id)
-            ->where('status', StoreUserStatus::Active->value)
+        $isActiveMember = StoreUser::where('boutique_id', $store->id)
+            ->where('utilisateur_id', $user->id)
+            ->where('statut', StoreUserStatus::Active->value)
             ->exists();
 
         abort_if(! $isActiveMember, 404);

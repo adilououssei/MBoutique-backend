@@ -15,16 +15,16 @@ class CashRegisterSessionPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('cash_register.view');
+        return $user->can('caisse.voir');
     }
 
     public function open(User $user, Store $store): bool
     {
-        return $user->can('cash_register.open');
+        return $user->can('caisse.ouvrir');
     }
 
     public function close(User $user, Store $store): bool
     {
-        return $user->can('cash_register.close');
+        return $user->can('caisse.fermer');
     }
 }

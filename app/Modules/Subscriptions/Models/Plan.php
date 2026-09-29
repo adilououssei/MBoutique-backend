@@ -5,6 +5,7 @@ namespace App\Modules\Subscriptions\Models;
 use App\Modules\Features\Models\Feature;
 use Database\Factories\Modules\Subscriptions\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,13 +17,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * counters without listing every feature). `max_*` columns are limits
  * (counts), never confused with features (on/off) — see docs/subscriptions.md §3.
  */
-#[Fillable(['code', 'name', 'price_monthly', 'price_yearly', 'max_stores', 'max_users_per_store', 'max_products_per_store'])]
+#[Fillable(['code', 'nom', 'prix_mensuel', 'prix_annuel', 'max_boutiques', 'max_utilisateurs_par_boutique', 'max_produits_par_boutique'])]
+#[Table('forfaits')]
 class Plan extends Model
 {
     use HasFactory;
 
     protected $attributes = [
-        'is_active' => true,
+        'actif' => true,
     ];
 
     protected static function newFactory(): PlanFactory
@@ -33,14 +35,14 @@ class Plan extends Model
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
-            'price_monthly' => 'decimal:2',
-            'price_yearly' => 'decimal:2',
+            'actif' => 'boolean',
+            'prix_mensuel' => 'decimal:2',
+            'prix_annuel' => 'decimal:2',
         ];
     }
 
     public function features(): BelongsToMany
     {
-        return $this->belongsToMany(Feature::class, 'plan_features');
+        return $this->belongsToMany(Feature::class, 'fonctionnalites_forfait', 'forfait_id', 'fonctionnalite_id');
     }
 }

@@ -2,24 +2,26 @@
 
 namespace App\Modules\Authorization\Support;
 
+use App\Modules\Tenancy\Enums\BusinessUserRole;
+
 /**
  * Store-level role templates (docs/permissions.md §3). These are spatie
  * role NAMES, not a separate concept — a store's "Owner" role is a real
  * spatie Role row scoped to that store's team_id, freely editable by the
  * store afterwards. Nothing in the codebase branches on these values
- * (`if ($role === 'manager')`) — they only seed a sensible starting point.
+ * (`if ($role === 'gerant')`) — they only seed a sensible starting point.
  */
 final class StoreRole
 {
-    public const OWNER = 'owner';
+    public const OWNER = 'proprietaire';
 
-    public const ADMIN = 'admin';
+    public const ADMIN = 'administrateur';
 
-    public const MANAGER = 'manager';
+    public const MANAGER = 'gerant';
 
-    public const CASHIER = 'cashier';
+    public const CASHIER = 'caissier';
 
-    public const EMPLOYEE = 'employee';
+    public const EMPLOYEE = 'employe';
 
     public static function all(): array
     {
@@ -69,7 +71,7 @@ final class StoreRole
             Permissions::CASH_REGISTER_CLOSE, Permissions::CASH_REGISTER_ADJUST,
         ];
 
-        // "Caissier : sales.create, sales.view, cash_register.*, ..."
+        // "Caissier : ventes.creer, ventes.voir, caisse.*, ..."
         // — docs/permissions.md §3, written before MANAGE (till CRUD)
         // existed as a distinct permission. Read literally today,
         // MANAGE is a setup task (defining the physical registers a
@@ -100,9 +102,9 @@ final class StoreRole
             self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
             // Cashier: read-only everywhere else, but operates the
             // register fully (opens/closes their own shift, cash in/out)
-            // and processes sales — "Caissier : sales.create, sales.view,
-            // cash_register.*, ..." (docs/permissions.md §3, confirmed
-            // literally for sales, unlike cash_register.manage — see above).
+            // and processes sales — "Caissier : ventes.creer, ventes.voir,
+            // caisse.*, ..." (docs/permissions.md §3, confirmed
+            // literally for sales, unlike caisse.gerer — see above).
             self::CASHIER => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterCashierAccess, ...$salesFullAccess],
             self::EMPLOYEE => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterReadOnly, ...$salesReadOnly],
         ];
@@ -116,8 +118,8 @@ final class StoreRole
     public static function forBusinessRole(string $businessRole): string
     {
         return match ($businessRole) {
-            'owner' => self::OWNER,
-            'admin' => self::ADMIN,
+            BusinessUserRole::Owner->value => self::OWNER,
+            BusinessUserRole::Admin->value => self::ADMIN,
             default => self::EMPLOYEE,
         };
     }

@@ -22,49 +22,49 @@ class CatalogFeatureGateTest extends TestCase
 
     public function test_products_are_reachable_when_the_domain_enables_the_feature(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['products']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
         Sanctum::actingAs($owner);
 
-        $this->getJson("/api/stores/{$store->id}/products")->assertStatus(200);
+        $this->getJson("/api/boutiques/{$store->id}/produits")->assertStatus(200);
     }
 
     public function test_products_are_blocked_when_the_domain_never_enabled_the_feature(): void
     {
         // Mirrors a hair_salon-like domain: only 'services' is enabled.
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($owner);
 
-        $response = $this->getJson("/api/stores/{$store->id}/products");
+        $response = $this->getJson("/api/boutiques/{$store->id}/produits");
 
-        $response->assertStatus(403)->assertJsonPath('code', 'FEATURE_DISABLED');
+        $response->assertStatus(403)->assertJsonPath('code', 'FONCTIONNALITE_DESACTIVEE');
     }
 
     public function test_the_owner_permission_does_not_bypass_a_disabled_feature(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
         Sanctum::actingAs($owner);
 
         // The owner role has products.create, yet the feature itself is
         // off for this store's domain — FeatureGate wins regardless.
-        $this->postJson("/api/stores/{$store->id}/products", ['name' => 'Article', 'retail_enabled' => true, 'retail_price' => 100])
+        $this->postJson("/api/boutiques/{$store->id}/produits", ['nom' => 'Article', 'vente_detail_active' => true, 'prix_detail' => 100])
             ->assertStatus(403)
-            ->assertJsonPath('code', 'FEATURE_DISABLED');
+            ->assertJsonPath('code', 'FONCTIONNALITE_DESACTIVEE');
     }
 
     public function test_a_store_override_can_enable_a_feature_its_domain_does_not_include(): void
     {
-        ['owner' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
-        // 'products' is deliberately NOT in this store's domain — it must
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['services']);
+        // 'produits' is deliberately NOT in this store's domain — it must
         // still exist as a Feature row (globally active) for the store to
         // be able to override it on.
-        $productsFeature = Feature::firstOrCreate(['slug' => 'products'], ['name' => 'products']);
+        $productsFeature = Feature::firstOrCreate(['slug' => 'produits'], ['nom' => 'produits']);
 
         app(TenantContextContract::class)->setStoreId($store->id);
-        StoreFeatureOverride::create(['feature_id' => $productsFeature->id, 'is_enabled' => true]);
+        StoreFeatureOverride::create(['fonctionnalite_id' => $productsFeature->id, 'activee' => true]);
         app(TenantContextContract::class)->clear();
 
         Sanctum::actingAs($owner);
 
-        $this->getJson("/api/stores/{$store->id}/products")->assertStatus(200);
+        $this->getJson("/api/boutiques/{$store->id}/produits")->assertStatus(200);
     }
 }

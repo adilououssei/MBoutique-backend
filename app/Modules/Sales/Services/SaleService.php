@@ -40,20 +40,20 @@ class SaleService
 
     /**
      * @param  array{
-     *     items: array<int, array{product_id: int, pricing_mode: string, quantity: string|float|int}>,
-     *     cash_register_id: int,
-     *     customer_id?: int|null,
-     *     payment_method?: string,
-     *     discount_amount?: string|float|int|null,
-     *     idempotency_key?: string|null,
+     *     lignes: array<int, array{produit_id: int, mode_prix: string, quantite: string|float|int}>,
+     *     caisse_id: int,
+     *     client_id?: int|null,
+     *     mode_paiement?: string,
+     *     montant_remise?: string|float|int|null,
+     *     cle_idempotence?: string|null,
      * }  $data
      */
     public function checkout(Store $store, array $data, ?int $userId): Sale
     {
-        $idempotencyKey = $data['idempotency_key'] ?? null;
+        $idempotencyKey = $data['cle_idempotence'] ?? null;
 
         if ($idempotencyKey !== null) {
-            $existing = Sale::query()->where('idempotency_key', $idempotencyKey)->first();
+            $existing = Sale::query()->where('cle_idempotence', $idempotencyKey)->first();
             if ($existing !== null) {
                 return $existing;
             }
@@ -65,22 +65,22 @@ class SaleService
             // idempotency_key) unique index is the real guarantee
             // (caught below), this closure just makes the common case fast.
             if ($idempotencyKey !== null) {
-                $existing = Sale::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+                $existing = Sale::query()->where('cle_idempotence', $idempotencyKey)->lockForUpdate()->first();
                 if ($existing !== null) {
                     return $existing;
                 }
             }
 
-            $register = CashRegister::query()->findOrFail($data['cash_register_id']);
-            if ($register->open_session_id === null) {
-                throw new NoOpenCashRegisterSessionException("La caisse \"{$register->name}\" n'a pas de session ouverte.");
+            $register = CashRegister::query()->findOrFail($data['caisse_id']);
+            if ($register->session_ouverte_id === null) {
+                throw new NoOpenCashRegisterSessionException("La caisse \"{$register->nom}\" n'a pas de session ouverte.");
             }
-            $session = CashRegisterSession::query()->findOrFail($register->open_session_id);
+            $session = CashRegisterSession::query()->findOrFail($register->session_ouverte_id);
 
-            $lines = $this->priceLines($data['items']);
-            $subtotal = $lines->reduce(fn (string $carry, array $line) => bcadd($carry, $line['total_amount'], 2), '0.00');
+            $lines = $this->priceLines($data['lignes']);
+            $subtotal = $lines->reduce(fn (string $carry, array $line) => bcadd($carry, $line['montant_total'], 2), '0.00');
 
-            $discount = Money::round((string) ($data['discount_amount'] ?? '0'));
+            $discount = Money::round((string) ($data['montant_remise'] ?? '0'));
             if (bccomp($discount, $subtotal, 2) > 0) {
                 throw new InvalidDiscountException('La remise ne peut pas dépasser le sous-total.');
             }
@@ -90,20 +90,20 @@ class SaleService
 
             foreach ($lines as $line) {
                 SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $line['product']->id,
-                    'product_name' => $line['product']->name,
-                    'pricing_mode' => $line['mode'],
-                    'unit_price' => $line['unit_price'],
-                    'quantity' => $line['quantity'],
-                    'total_amount' => $line['total_amount'],
+                    'vente_id' => $sale->id,
+                    'produit_id' => $line['product']->id,
+                    'nom_produit' => $line['product']->nom,
+                    'mode_prix' => $line['mode'],
+                    'prix_unitaire' => $line['prix_unitaire'],
+                    'quantite' => $line['quantite'],
+                    'montant_total' => $line['montant_total'],
                 ]);
 
                 // Sorted by product_id in priceLines() before this loop
                 // runs — a consistent lock order across every checkout,
                 // so two concurrent carts sharing products can never
                 // deadlock on Stock rows. See docs/sales.md §"Verrouillage".
-                $this->inventory->removeStock($line['product'], StockMovementType::Sale, $line['quantity'], $userId, null, $sale);
+                $this->inventory->removeStock($line['product'], StockMovementType::Sale, $line['quantite'], $userId, null, $sale);
             }
 
             try {
@@ -119,19 +119,19 @@ class SaleService
         });
     }
 
-    /** @return Collection<int, array{product: Product, mode: PricingMode, unit_price: string, quantity: string, total_amount: string}> */
+    /** @return Collection<int, array{product: Product, mode: PricingMode, prix_unitaire: string, quantite: string, montant_total: string}> */
     private function priceLines(array $items): Collection
     {
-        $productIds = collect($items)->pluck('product_id')->unique()->values();
+        $productIds = collect($items)->pluck('produit_id')->unique()->values();
         $products = Product::query()->whereIn('id', $productIds)->get()->keyBy('id');
 
         return collect($items)
-            ->sortBy('product_id') // see the lock-ordering note in checkout()
+            ->sortBy('produit_id') // see the lock-ordering note in checkout()
             ->values()
             ->map(function (array $item) use ($products) {
                 /** @var Product $product */
-                $product = $products->get($item['product_id']) ?? throw new InvalidArgumentException("Unknown product #{$item['product_id']}.");
-                $mode = PricingMode::from($item['pricing_mode']);
+                $product = $products->get($item['produit_id']) ?? throw new InvalidArgumentException("Produit #{$item['produit_id']} introuvable.");
+                $mode = PricingMode::from($item['mode_prix']);
 
                 try {
                     $unitPrice = $product->priceFor($mode);
@@ -139,15 +139,15 @@ class SaleService
                     throw PricingModeNotAvailableException::forProduct($product, $mode);
                 }
 
-                $quantity = (string) $item['quantity'];
+                $quantity = (string) $item['quantite'];
                 $lineTotal = Money::round(bcmul($unitPrice, $quantity, 6));
 
                 return [
                     'product' => $product,
                     'mode' => $mode,
-                    'unit_price' => $unitPrice,
-                    'quantity' => $quantity,
-                    'total_amount' => $lineTotal,
+                    'prix_unitaire' => $unitPrice,
+                    'quantite' => $quantity,
+                    'montant_total' => $lineTotal,
                 ];
             });
     }
@@ -163,17 +163,17 @@ class SaleService
         ?string $idempotencyKey,
     ): Sale {
         $attributes = [
-            'cash_register_id' => $register->id,
-            'cash_register_session_id' => $session->id,
-            'customer_id' => $data['customer_id'] ?? null,
-            'sold_by_user_id' => $userId,
-            'subtotal' => $subtotal,
-            'discount_amount' => $discount,
-            'total_amount' => $total,
-            'status' => SaleStatus::Completed,
-            'payment_method' => PaymentMethod::from($data['payment_method'] ?? PaymentMethod::Cash->value),
-            'idempotency_key' => $idempotencyKey,
-            'sold_at' => now(),
+            'caisse_id' => $register->id,
+            'session_caisse_id' => $session->id,
+            'client_id' => $data['client_id'] ?? null,
+            'vendeur_id' => $userId,
+            'sous_total' => $subtotal,
+            'montant_remise' => $discount,
+            'montant_total' => $total,
+            'statut' => SaleStatus::Completed,
+            'mode_paiement' => PaymentMethod::from($data['mode_paiement'] ?? PaymentMethod::Cash->value),
+            'cle_idempotence' => $idempotencyKey,
+            'vendue_le' => now(),
         ];
 
         try {
@@ -182,7 +182,7 @@ class SaleService
             if ($idempotencyKey !== null && $this->isUniqueConstraintViolation($e)) {
                 // Lost a race on the idempotency key to a concurrent
                 // request — return what it created instead of failing.
-                return Sale::query()->where('idempotency_key', $idempotencyKey)->firstOrFail();
+                return Sale::query()->where('cle_idempotence', $idempotencyKey)->firstOrFail();
             }
             throw $e;
         }

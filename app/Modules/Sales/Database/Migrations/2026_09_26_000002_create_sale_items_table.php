@@ -8,30 +8,30 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sale_items', function (Blueprint $table) {
+        Schema::create('lignes_vente', function (Blueprint $table) {
             $table->id();
             // Denormalized store_id, same pattern as stock_movements/
             // cash_movements — direct tenant-scoped queries without a
             // join through `sales`, and BelongsToStore needs the column.
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('vente_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('produit_id')->constrained()->restrictOnDelete();
             // Snapshot at time of sale — a later rename/price change on
             // Product must never alter a past receipt. See docs/sales.md §"Snapshot".
-            $table->string('product_name');
-            $table->string('pricing_mode');
-            $table->decimal('unit_price', 12, 2);
-            $table->decimal('quantity', 12, 3);
-            $table->decimal('total_amount', 12, 2);
+            $table->string('nom_produit');
+            $table->string('mode_prix');
+            $table->decimal('prix_unitaire', 12, 2);
+            $table->decimal('quantite', 12, 3);
+            $table->decimal('montant_total', 12, 2);
             $table->timestamps();
 
-            $table->index('sale_id');
-            $table->index('product_id');
+            $table->index('vente_id');
+            $table->index('produit_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sale_items');
+        Schema::dropIfExists('lignes_vente');
     }
 };

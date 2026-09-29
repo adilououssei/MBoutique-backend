@@ -12,77 +12,77 @@ namespace App\Modules\Authorization\Support;
  */
 final class Permissions
 {
-    public const STORE_USERS_VIEW = 'store_users.view';
+    public const STORE_USERS_VIEW = 'membres.voir';
 
-    public const STORE_USERS_MANAGE = 'store_users.manage';
+    public const STORE_USERS_MANAGE = 'membres.gerer';
 
     // Catalog (Phase 3) — see docs/catalog.md.
-    public const CATEGORIES_VIEW = 'categories.view';
+    public const CATEGORIES_VIEW = 'categories.voir';
 
-    public const CATEGORIES_CREATE = 'categories.create';
+    public const CATEGORIES_CREATE = 'categories.creer';
 
-    public const CATEGORIES_UPDATE = 'categories.update';
+    public const CATEGORIES_UPDATE = 'categories.modifier';
 
-    public const CATEGORIES_DELETE = 'categories.delete';
+    public const CATEGORIES_DELETE = 'categories.supprimer';
 
-    public const PRODUCTS_VIEW = 'products.view';
+    public const PRODUCTS_VIEW = 'produits.voir';
 
-    public const PRODUCTS_CREATE = 'products.create';
+    public const PRODUCTS_CREATE = 'produits.creer';
 
-    public const PRODUCTS_UPDATE = 'products.update';
+    public const PRODUCTS_UPDATE = 'produits.modifier';
 
-    public const PRODUCTS_DELETE = 'products.delete';
+    public const PRODUCTS_DELETE = 'produits.supprimer';
 
-    public const PRODUCTS_IMPORT = 'products.import';
+    public const PRODUCTS_IMPORT = 'produits.importer';
 
-    public const SERVICES_VIEW = 'services.view';
+    public const SERVICES_VIEW = 'services.voir';
 
-    public const SERVICES_CREATE = 'services.create';
+    public const SERVICES_CREATE = 'services.creer';
 
-    public const SERVICES_UPDATE = 'services.update';
+    public const SERVICES_UPDATE = 'services.modifier';
 
-    public const SERVICES_DELETE = 'services.delete';
+    public const SERVICES_DELETE = 'services.supprimer';
 
     // Customers (Phase 3.5) — see docs/customers.md.
-    public const CUSTOMERS_VIEW = 'customers.view';
+    public const CUSTOMERS_VIEW = 'clients.voir';
 
-    public const CUSTOMERS_CREATE = 'customers.create';
+    public const CUSTOMERS_CREATE = 'clients.creer';
 
-    public const CUSTOMERS_UPDATE = 'customers.update';
+    public const CUSTOMERS_UPDATE = 'clients.modifier';
 
-    public const CUSTOMERS_DELETE = 'customers.delete';
+    public const CUSTOMERS_DELETE = 'clients.supprimer';
 
     // Inventory (Phase 4.1) — see docs/inventory.md.
-    public const INVENTORY_VIEW = 'inventory.view';
+    public const INVENTORY_VIEW = 'stock.voir';
 
     // Every manually-recordable movement except stocktake — see
     // StockMovementPolicy and docs/inventory.md §"Permissions".
-    public const INVENTORY_ADJUST = 'inventory.adjust';
+    public const INVENTORY_ADJUST = 'stock.ajuster';
 
-    public const INVENTORY_STOCKTAKE = 'inventory.stocktake';
+    public const INVENTORY_STOCKTAKE = 'stock.inventorier';
 
     // CashRegister (Phase 4.2) — see docs/cash-register.md. Names match
     // docs/permissions.md §3, which had already anticipated view/open/
     // close/adjust before this phase; MANAGE (till CRUD) is the one
     // addition, justified by section 29 of the Phase 4.2 brief — see
     // docs/cash-register.md §"Permissions".
-    public const CASH_REGISTER_VIEW = 'cash_register.view';
+    public const CASH_REGISTER_VIEW = 'caisse.voir';
 
-    public const CASH_REGISTER_MANAGE = 'cash_register.manage';
+    public const CASH_REGISTER_MANAGE = 'caisse.gerer';
 
-    public const CASH_REGISTER_OPEN = 'cash_register.open';
+    public const CASH_REGISTER_OPEN = 'caisse.ouvrir';
 
-    public const CASH_REGISTER_CLOSE = 'cash_register.close';
+    public const CASH_REGISTER_CLOSE = 'caisse.fermer';
 
-    public const CASH_REGISTER_ADJUST = 'cash_register.adjust';
+    public const CASH_REGISTER_ADJUST = 'caisse.ajuster';
 
     // Sales (Phase 4.3) — see docs/sales.md. Only view/create: no
     // sales.cancel, since cancellation isn't implemented this phase
     // (it would need a stock/cash reversal not built yet) — an unused
     // permission constant would just be dead weight.
-    public const SALES_VIEW = 'sales.view';
+    public const SALES_VIEW = 'ventes.voir';
 
-    public const SALES_CREATE = 'sales.create';
+    public const SALES_CREATE = 'ventes.creer';
 
     public static function all(): array
     {

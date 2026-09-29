@@ -9,11 +9,11 @@ class CashMovementPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('cash_register.view');
+        return $user->can('caisse.voir');
     }
 
     public function create(User $user, Store $store): bool
     {
-        return $user->can('cash_register.adjust');
+        return $user->can('caisse.ajuster');
     }
 }

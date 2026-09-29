@@ -23,17 +23,17 @@ class CreateCategoryRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'slug' => $this->input('slug') ?: Str::slug((string) $this->input('name')),
+            'slug' => $this->input('slug') ?: Str::slug((string) $this->input('nom')),
         ]);
     }
 
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'nom' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', TenantScopedRules::uniqueInCurrentStore('categories', 'slug')],
             'description' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
+            'actif' => ['sometimes', 'boolean'],
         ];
     }
 }

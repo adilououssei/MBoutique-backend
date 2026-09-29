@@ -5,6 +5,7 @@ namespace App\Modules\Features\Models;
 use App\Modules\Tenancy\Models\Store;
 use Database\Factories\Modules\Features\BusinessDomainFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,13 +16,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * tenant-scoped — administered by the platform admin (Phase 6), seeded
  * for now. See docs/features.md.
  */
-#[Fillable(['name', 'slug', 'description', 'icon', 'is_active'])]
+#[Fillable(['nom', 'slug', 'description', 'icone', 'actif'])]
+#[Table('domaines_activite')]
 class BusinessDomain extends Model
 {
     use HasFactory;
 
     protected $attributes = [
-        'is_active' => true,
+        'actif' => true,
     ];
 
     protected static function newFactory(): BusinessDomainFactory
@@ -32,17 +34,17 @@ class BusinessDomain extends Model
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'actif' => 'boolean',
         ];
     }
 
     public function stores(): HasMany
     {
-        return $this->hasMany(Store::class);
+        return $this->hasMany(Store::class, 'domaine_activite_id');
     }
 
     public function domainFeatures(): HasMany
     {
-        return $this->hasMany(DomainFeature::class);
+        return $this->hasMany(DomainFeature::class, 'domaine_activite_id');
     }
 }

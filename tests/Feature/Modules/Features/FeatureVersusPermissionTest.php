@@ -29,18 +29,18 @@ class FeatureVersusPermissionTest extends TestCase
     {
         parent::setUp();
 
-        Route::middleware(['api', 'auth:sanctum', 'store', 'feature:sales', 'permission:store_users.manage'])
+        Route::middleware(['api', 'auth:sanctum', 'store', 'feature:ventes', 'permission:membres.gerer'])
             ->prefix('api')
-            ->get('_test/feature-and-permission/stores/{store}', fn () => response()->json(['success' => true]));
+            ->get('_test/feature-and-permission/boutiques/{store}', fn () => response()->json(['succes' => true]));
     }
 
     private function storeWithFeature(string $slug, bool $enabled): Store
     {
         $domain = BusinessDomain::factory()->create();
         $feature = Feature::factory()->create(['slug' => $slug]);
-        DomainFeature::create(['business_domain_id' => $domain->id, 'feature_id' => $feature->id, 'is_default_enabled' => $enabled]);
+        DomainFeature::create(['domaine_activite_id' => $domain->id, 'fonctionnalite_id' => $feature->id, 'active_par_defaut' => $enabled]);
 
-        return Store::factory()->create(['business_domain_id' => $domain->id]);
+        return Store::factory()->create(['domaine_activite_id' => $domain->id]);
     }
 
     private function grantPermission(Store $store, User $user, string $permission): void
@@ -58,41 +58,41 @@ class FeatureVersusPermissionTest extends TestCase
 
     public function test_feature_disabled_blocks_access_even_with_the_permission(): void
     {
-        $store = $this->storeWithFeature('sales', enabled: false);
+        $store = $this->storeWithFeature('ventes', enabled: false);
         $user = User::factory()->create();
-        StoreUser::factory()->for($store)->for($user)->create(['status' => 'active']);
-        $this->grantPermission($store, $user, 'store_users.manage');
+        StoreUser::factory()->for($store)->for($user)->create(['statut' => 'actif']);
+        $this->grantPermission($store, $user, 'membres.gerer');
         Sanctum::actingAs($user);
 
-        $response = $this->getJson("/api/_test/feature-and-permission/stores/{$store->id}");
+        $response = $this->getJson("/api/_test/feature-and-permission/boutiques/{$store->id}");
 
-        $response->assertStatus(403)->assertJsonPath('code', 'FEATURE_DISABLED');
+        $response->assertStatus(403)->assertJsonPath('code', 'FONCTIONNALITE_DESACTIVEE');
     }
 
     public function test_feature_enabled_but_missing_permission_still_blocks_access(): void
     {
-        $store = $this->storeWithFeature('sales', enabled: true);
+        $store = $this->storeWithFeature('ventes', enabled: true);
         $user = User::factory()->create();
-        StoreUser::factory()->for($store)->for($user)->create(['status' => 'active']);
+        StoreUser::factory()->for($store)->for($user)->create(['statut' => 'actif']);
         Sanctum::actingAs($user);
         // No permission granted at all: the feature exists for this
         // store, but this user individually may not use it.
 
-        $response = $this->getJson("/api/_test/feature-and-permission/stores/{$store->id}");
+        $response = $this->getJson("/api/_test/feature-and-permission/boutiques/{$store->id}");
 
         $response->assertStatus(403);
-        $this->assertNotSame('FEATURE_DISABLED', $response->json('code'));
+        $this->assertNotSame('FONCTIONNALITE_DESACTIVEE', $response->json('code'));
     }
 
     public function test_feature_enabled_and_permission_granted_allows_access(): void
     {
-        $store = $this->storeWithFeature('sales', enabled: true);
+        $store = $this->storeWithFeature('ventes', enabled: true);
         $user = User::factory()->create();
-        StoreUser::factory()->for($store)->for($user)->create(['status' => 'active']);
-        $this->grantPermission($store, $user, 'store_users.manage');
+        StoreUser::factory()->for($store)->for($user)->create(['statut' => 'actif']);
+        $this->grantPermission($store, $user, 'membres.gerer');
         Sanctum::actingAs($user);
 
-        $response = $this->getJson("/api/_test/feature-and-permission/stores/{$store->id}");
+        $response = $this->getJson("/api/_test/feature-and-permission/boutiques/{$store->id}");
 
         $response->assertStatus(200);
     }

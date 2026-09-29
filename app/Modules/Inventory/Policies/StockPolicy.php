@@ -15,12 +15,12 @@ class StockPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('inventory.view');
+        return $user->can('stock.voir');
     }
 
     /** Updating the minimum_quantity threshold — not a stock movement, gated the same as a manual adjustment. */
     public function update(User $user, Store $store): bool
     {
-        return $user->can('inventory.adjust');
+        return $user->can('stock.ajuster');
     }
 }

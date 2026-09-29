@@ -14,8 +14,8 @@ class OpenCashRegisterSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'opening_amount' => ['required', 'numeric', 'min:0'],
-            'reason' => ['nullable', 'string', 'max:500'],
+            'montant_ouverture' => ['required', 'numeric', 'min:0'],
+            'motif' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

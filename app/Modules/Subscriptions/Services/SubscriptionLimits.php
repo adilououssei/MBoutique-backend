@@ -24,12 +24,12 @@ class SubscriptionLimits
     {
         $plan = $business->subscription?->plan;
 
-        if (! $plan || $plan->max_stores === null) {
+        if (! $plan || $plan->max_boutiques === null) {
             return;
         }
 
-        if ($business->stores()->count() >= $plan->max_stores) {
-            throw SubscriptionLimitExceededException::forStores($plan->max_stores);
+        if ($business->stores()->count() >= $plan->max_boutiques) {
+            throw SubscriptionLimitExceededException::forStores($plan->max_boutiques);
         }
     }
 }

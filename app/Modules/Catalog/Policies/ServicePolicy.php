@@ -10,26 +10,26 @@ class ServicePolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('services.view');
+        return $user->can('services.voir');
     }
 
     public function view(User $user, Service $service, Store $store): bool
     {
-        return $service->store_id === $store->id && $user->can('services.view');
+        return $service->boutique_id === $store->id && $user->can('services.voir');
     }
 
     public function create(User $user, Store $store): bool
     {
-        return $user->can('services.create');
+        return $user->can('services.creer');
     }
 
     public function update(User $user, Service $service, Store $store): bool
     {
-        return $service->store_id === $store->id && $user->can('services.update');
+        return $service->boutique_id === $store->id && $user->can('services.modifier');
     }
 
     public function delete(User $user, Service $service, Store $store): bool
     {
-        return $service->store_id === $store->id && $user->can('services.delete');
+        return $service->boutique_id === $store->id && $user->can('services.supprimer');
     }
 }

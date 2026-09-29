@@ -19,11 +19,11 @@ class CategoryFactory extends Factory
         $name = fake()->unique()->word();
 
         return [
-            'store_id' => Store::factory(),
-            'name' => $name,
+            'boutique_id' => Store::factory(),
+            'nom' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
             'description' => fake()->optional()->sentence(),
-            'is_active' => true,
+            'actif' => true,
         ];
     }
 }

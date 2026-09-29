@@ -17,17 +17,17 @@ class CustomerController extends ApiController
         $this->authorize('viewAny', [Customer::class, $store]);
 
         $customers = Customer::query()
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $term = '%'.$request->string('search').'%';
+            ->when($request->filled('recherche'), function ($q) use ($request) {
+                $term = '%'.$request->string('recherche').'%';
                 $q->where(function ($q) use ($term) {
-                    $q->where('name', 'like', $term)
-                        ->orWhere('phone', 'like', $term)
-                        ->orWhere('company_name', 'like', $term);
+                    $q->where('nom', 'like', $term)
+                        ->orWhere('telephone', 'like', $term)
+                        ->orWhere('nom_entreprise', 'like', $term);
                 });
             })
-            ->when($request->has('is_active'), fn ($q) => $q->where('is_active', $request->boolean('is_active')))
-            ->orderBy('name')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->when($request->has('actif'), fn ($q) => $q->where('actif', $request->boolean('actif')))
+            ->orderBy('nom')
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(CustomerResource::collection($customers));
     }

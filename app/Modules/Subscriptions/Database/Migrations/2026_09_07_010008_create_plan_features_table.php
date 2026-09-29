@@ -13,16 +13,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('plan_features', function (Blueprint $table) {
-            $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('feature_id')->constrained()->cascadeOnDelete();
+        Schema::create('fonctionnalites_forfait', function (Blueprint $table) {
+            $table->foreignId('forfait_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('fonctionnalite_id')->constrained()->cascadeOnDelete();
 
-            $table->primary(['plan_id', 'feature_id']);
+            $table->primary(['forfait_id', 'fonctionnalite_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('plan_features');
+        Schema::dropIfExists('fonctionnalites_forfait');
     }
 };

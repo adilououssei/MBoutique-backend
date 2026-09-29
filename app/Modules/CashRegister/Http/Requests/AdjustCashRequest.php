@@ -21,16 +21,16 @@ class AdjustCashRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric'],
-            'reason' => ['required', 'string', 'max:500'],
+            'montant' => ['required', 'numeric'],
+            'motif' => ['required', 'string', 'max:500'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if ($this->filled('amount') && is_numeric($this->input('amount')) && bccomp((string) $this->input('amount'), '0', 2) === 0) {
-                $validator->errors()->add('amount', "Un ajustement de 0 n'a pas de sens — il ne changerait rien au solde.");
+            if ($this->filled('montant') && is_numeric($this->input('montant')) && bccomp((string) $this->input('montant'), '0', 2) === 0) {
+                $validator->errors()->add('montant', "Un ajustement de 0 n'a pas de sens — il ne changerait rien au solde.");
             }
         });
     }

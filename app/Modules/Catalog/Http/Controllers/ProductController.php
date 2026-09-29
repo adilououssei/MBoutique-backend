@@ -22,21 +22,21 @@ class ProductController extends ApiController
         $this->authorize('viewAny', [Product::class, $store]);
 
         $request->validate([
-            'selling_mode' => ['sometimes', Rule::enum(PricingMode::class)],
+            'mode_prix' => ['sometimes', Rule::enum(PricingMode::class)],
         ]);
 
-        $sellingModeColumn = $request->filled('selling_mode')
-            ? (PricingMode::from($request->string('selling_mode')->value()) === PricingMode::Retail ? 'retail_enabled' : 'wholesale_enabled')
+        $sellingModeColumn = $request->filled('mode_prix')
+            ? (PricingMode::from($request->string('mode_prix')->value()) === PricingMode::Retail ? 'vente_detail_active' : 'vente_gros_active')
             : null;
 
         $products = Product::query()
             ->with('category')
-            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%'.$request->string('search').'%'))
-            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
-            ->when($request->has('is_active'), fn ($q) => $q->where('is_active', $request->boolean('is_active')))
+            ->when($request->filled('recherche'), fn ($q) => $q->where('nom', 'like', '%'.$request->string('recherche').'%'))
+            ->when($request->filled('categorie_id'), fn ($q) => $q->where('categorie_id', $request->integer('categorie_id')))
+            ->when($request->has('actif'), fn ($q) => $q->where('actif', $request->boolean('actif')))
             ->when($sellingModeColumn, fn ($q) => $q->where($sellingModeColumn, true))
-            ->orderBy('name')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->orderBy('nom')
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(ProductResource::collection($products));
     }

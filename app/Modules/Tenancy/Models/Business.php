@@ -7,6 +7,7 @@ use App\Modules\Subscriptions\Models\Subscription;
 use App\Modules\Tenancy\Enums\BusinessStatus;
 use Database\Factories\Modules\Tenancy\BusinessFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Stores. Business-level authorization is BusinessUser, not spatie
  * permissions (those are store-level). See docs/database.md §2.
  */
-#[Fillable(['name', 'legal_name', 'country', 'currency', 'timezone'])]
+#[Fillable(['nom', 'raison_sociale', 'pays', 'devise', 'fuseau_horaire'])]
+#[Table('entreprises')]
 class Business extends Model
 {
     use HasFactory, SoftDeletes;
@@ -27,12 +29,12 @@ class Business extends Model
     /**
      * See the identical note on App\Models\User — Eloquent's create()
      * doesn't re-fetch DB-level defaults, so this must mirror the
-     * `businesses` migration's default for `status`.
+     * `entreprises` migration's default for `statut`.
      */
     protected $attributes = [
-        'status' => 'active',
-        'currency' => 'XOF',
-        'timezone' => 'UTC',
+        'statut' => 'active',
+        'devise' => 'XOF',
+        'fuseau_horaire' => 'UTC',
     ];
 
     protected static function newFactory(): BusinessFactory
@@ -43,27 +45,27 @@ class Business extends Model
     protected function casts(): array
     {
         return [
-            'status' => BusinessStatus::class,
+            'statut' => BusinessStatus::class,
         ];
     }
 
     public function owner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'owner_user_id');
+        return $this->belongsTo(User::class, 'proprietaire_id');
     }
 
     public function businessUsers(): HasMany
     {
-        return $this->hasMany(BusinessUser::class);
+        return $this->hasMany(BusinessUser::class, 'entreprise_id');
     }
 
     public function stores(): HasMany
     {
-        return $this->hasMany(Store::class);
+        return $this->hasMany(Store::class, 'entreprise_id');
     }
 
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class, 'entreprise_id');
     }
 }

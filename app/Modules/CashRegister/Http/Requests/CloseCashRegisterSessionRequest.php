@@ -14,8 +14,8 @@ class CloseCashRegisterSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'actual_closing_amount' => ['required', 'numeric', 'min:0'],
-            'closing_note' => ['nullable', 'string'],
+            'montant_fermeture_reel' => ['required', 'numeric', 'min:0'],
+            'note_fermeture' => ['nullable', 'string'],
         ];
     }
 }

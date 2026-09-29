@@ -15,26 +15,26 @@ class CustomerPolicy
 {
     public function viewAny(User $user, Store $store): bool
     {
-        return $user->can('customers.view');
+        return $user->can('clients.voir');
     }
 
     public function view(User $user, Customer $customer, Store $store): bool
     {
-        return $customer->store_id === $store->id && $user->can('customers.view');
+        return $customer->boutique_id === $store->id && $user->can('clients.voir');
     }
 
     public function create(User $user, Store $store): bool
     {
-        return $user->can('customers.create');
+        return $user->can('clients.creer');
     }
 
     public function update(User $user, Customer $customer, Store $store): bool
     {
-        return $customer->store_id === $store->id && $user->can('customers.update');
+        return $customer->boutique_id === $store->id && $user->can('clients.modifier');
     }
 
     public function delete(User $user, Customer $customer, Store $store): bool
     {
-        return $customer->store_id === $store->id && $user->can('customers.delete');
+        return $customer->boutique_id === $store->id && $user->can('clients.supprimer');
     }
 }

@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('store_feature_overrides', function (Blueprint $table) {
+        Schema::create('fonctionnalites_boutique', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('feature_id')->constrained()->cascadeOnDelete();
-            $table->boolean('is_enabled');
+            $table->foreignId('boutique_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('fonctionnalite_id')->constrained()->cascadeOnDelete();
+            $table->boolean('activee');
             $table->timestamps();
 
-            $table->unique(['store_id', 'feature_id']);
+            $table->unique(['boutique_id', 'fonctionnalite_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('store_feature_overrides');
+        Schema::dropIfExists('fonctionnalites_boutique');
     }
 };

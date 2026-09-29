@@ -16,15 +16,15 @@ class CashRegisterFactory extends Factory
     public function definition(): array
     {
         return [
-            'store_id' => Store::factory(),
-            'name' => 'Caisse '.fake()->unique()->numberBetween(1, 9999),
+            'boutique_id' => Store::factory(),
+            'nom' => 'Caisse '.fake()->unique()->numberBetween(1, 9999),
             'code' => null,
-            'is_active' => true,
+            'actif' => true,
         ];
     }
 
     public function inactive(): static
     {
-        return $this->state(fn () => ['is_active' => false]);
+        return $this->state(fn () => ['actif' => false]);
     }
 }

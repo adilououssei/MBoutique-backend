@@ -25,10 +25,10 @@ class CashRegisterSessionController extends ApiController
         $this->authorize('viewAny', [CashRegisterSession::class, $store]);
 
         $sessions = CashRegisterSession::query()
-            ->where('cash_register_id', $cashRegister->id)
+            ->where('caisse_id', $cashRegister->id)
             ->with(['openedBy', 'closedBy'])
-            ->latest('opened_at')
-            ->paginate(min((int) $request->integer('per_page', 20), 100));
+            ->latest('ouverte_le')
+            ->paginate(min((int) $request->integer('par_page', 20), 100));
 
         return $this->success(CashRegisterSessionResource::collection($sessions));
     }
@@ -37,11 +37,11 @@ class CashRegisterSessionController extends ApiController
     {
         $this->authorize('viewAny', [CashRegisterSession::class, $store]);
 
-        if ($cashRegister->open_session_id === null) {
+        if ($cashRegister->session_ouverte_id === null) {
             return $this->success(null, 'Aucune session ouverte pour cette caisse.');
         }
 
-        $session = CashRegisterSession::query()->with(['openedBy'])->findOrFail($cashRegister->open_session_id);
+        $session = CashRegisterSession::query()->with(['openedBy'])->findOrFail($cashRegister->session_ouverte_id);
 
         return $this->success(new CashRegisterSessionResource($session));
     }
@@ -53,14 +53,14 @@ class CashRegisterSessionController extends ApiController
         try {
             $session = $this->cashRegisters->openSession(
                 $cashRegister,
-                (string) $request->input('opening_amount'),
+                (string) $request->input('montant_ouverture'),
                 $request->user()?->id,
-                $request->input('reason'),
+                $request->input('motif'),
             );
         } catch (CashRegisterAlreadyOpenException $e) {
-            return $this->error($e->getMessage(), [], 422, 'CASH_REGISTER_ALREADY_OPEN');
+            return $this->error($e->getMessage(), [], 422, 'CAISSE_DEJA_OUVERTE');
         } catch (CashRegisterInactiveException $e) {
-            return $this->error($e->getMessage(), [], 422, 'CASH_REGISTER_INACTIVE');
+            return $this->error($e->getMessage(), [], 422, 'CAISSE_INACTIVE');
         }
 
         return $this->success(new CashRegisterSessionResource($session), 'Session de caisse ouverte.', [], 201);
@@ -73,12 +73,12 @@ class CashRegisterSessionController extends ApiController
         try {
             $session = $this->cashRegisters->closeSession(
                 $session,
-                (string) $request->input('actual_closing_amount'),
+                (string) $request->input('montant_fermeture_reel'),
                 $request->user()?->id,
-                $request->input('closing_note'),
+                $request->input('note_fermeture'),
             );
         } catch (CashRegisterSessionClosedException $e) {
-            return $this->error($e->getMessage(), [], 422, 'CASH_REGISTER_SESSION_CLOSED');
+            return $this->error($e->getMessage(), [], 422, 'SESSION_CAISSE_FERMEE');
         }
 
         return $this->success(new CashRegisterSessionResource($session), 'Session de caisse fermée.');

@@ -17,9 +17,9 @@ class ProductImportTemplateExport implements Export, FromArray, WithHeadings
     public function headings(): array
     {
         return [
-            'name', 'category', 'description', 'sku', 'barcode', 'unit',
-            'purchase_price', 'retail_enabled', 'retail_price',
-            'wholesale_enabled', 'wholesale_price', 'is_active',
+            'nom', 'categorie', 'description', 'sku', 'code_barres', 'unite',
+            'prix_achat', 'vente_detail_active', 'prix_detail',
+            'vente_gros_active', 'prix_gros', 'actif',
         ];
     }
 

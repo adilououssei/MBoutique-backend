@@ -1,12 +1,12 @@
 # Domaines métiers et système de features
 
-> **Mise à jour (audit architectural du 2026-09-06)** : voir [audit-2026-09.md](audit-2026-09.md). Ajout du §7 "Dépendances entre features", qui comblait un vide (rien n'empêchait d'activer `appointments` sans `services`/`employees`).
+> **Mise à jour (audit architectural du 2026-09-06)** : voir [audit-2026-09.md](audit-2026-09.md). Ajout du §7 "Dépendances entre features", qui comblait un vide (rien n'empêchait d'activer `rendez_vous` sans `services`/`employes`).
 >
-> **Mise à jour (implémentation Phase 2, 2026-09-07)** : ce document reste la référence de conception ; voir **[feature-gate.md](feature-gate.md)** pour l'implémentation réelle, l'ordre de résolution définitivement tranché (en particulier le rôle de `BusinessDomain.is_active`, laissé ambigu ici), et les exemples vérifiés par test. `code`/`label` du schéma d'origine ont été implémentés comme `slug`/`name` pour rester cohérents avec la convention déjà en place sur `Store` (Phase 1). `categories` est bien une `Feature` à part entière, pas un synonyme inclus dans `products` comme suggéré au §3 ci-dessous.
+> **Mise à jour (implémentation Phase 2, 2026-09-07)** : ce document reste la référence de conception ; voir **[feature-gate.md](feature-gate.md)** pour l'implémentation réelle, l'ordre de résolution définitivement tranché (en particulier le rôle de `BusinessDomain.actif`, laissé ambigu ici), et les exemples vérifiés par test. `code`/`label` du schéma d'origine ont été implémentés comme `slug`/`nom` pour rester cohérents avec la convention déjà en place sur `Store` (Phase 1). `categories` est bien une `Feature` à part entière, pas un synonyme inclus dans `produits` comme suggéré au §3 ci-dessous.
 
 ## 1. Objectif
 
-Éviter absolument le pattern `if ($store->type === 'restaurant') { ... }` dispersé dans le code. À la place, chaque module métier expose sa disponibilité sous la forme d'une **feature nommée** (`products`, `appointments`, `cash_register`, ...), et le système répond à une seule question, toujours de la même façon : *"la feature X est-elle active pour ce store, maintenant ?"*.
+Éviter absolument le pattern `if ($store->type === 'restaurant') { ... }` dispersé dans le code. À la place, chaque module métier expose sa disponibilité sous la forme d'une **feature nommée** (`produits`, `rendez_vous`, `caisse`, ...), et le système répond à une seule question, toujours de la même façon : *"la feature X est-elle active pour ce store, maintenant ?"*.
 
 ## 2. Modèle de données (voir aussi [database.md](database.md) §4)
 
@@ -20,10 +20,10 @@ BusinessDomain ──< DomainFeature >── Feature
 ```
 
 - `BusinessDomain` : le métier choisi à la création de la boutique (alimentation générale, coiffeur, ...), gérable par l'admin plateforme.
-- `Feature` : une capacité activable, correspondant en général à un module (`products`, `services`, `inventory`, `sales`, `cash_register`, `customers`, `suppliers`, `employees`, `appointments`, `orders`, `reports`).
+- `Feature` : une capacité activable, correspondant en général à un module (`produits`, `services`, `stock`, `ventes`, `caisse`, `clients`, `fournisseurs`, `employes`, `rendez_vous`, `commandes`, `rapports`).
 - `DomainFeature` : mapping par défaut — quelles features sont actives pour un domaine donné.
-- `StoreFeatureOverride` : une boutique précise peut déroger au défaut de son domaine (ex: une "alimentation générale" qui veut aussi activer `appointments` pour des commandes sur réservation).
-- `PlanFeature` (voir [subscriptions.md](subscriptions.md)) : le plan d'abonnement peut lui aussi restreindre l'accès à une feature indépendamment du domaine (ex: `reports.advanced` réservé aux plans PRO/BUSINESS).
+- `StoreFeatureOverride` : une boutique précise peut déroger au défaut de son domaine (ex: une "alimentation générale" qui veut aussi activer `rendez_vous` pour des commandes sur réservation).
+- `PlanFeature` (voir [subscriptions.md](subscriptions.md)) : le plan d'abonnement peut lui aussi restreindre l'accès à une feature indépendamment du domaine (ex: `rapports.advanced` réservé aux plans PRO/BUSINESS).
 
 ## 3. Exemples de mapping par défaut
 
@@ -68,9 +68,9 @@ Route::middleware(['auth:sanctum', 'store', 'feature:appointments'])
     ->group(base_path('routes/api/appointments.php'));
 ```
 
-Le middleware appelle `FeatureGate::check($store, 'appointments')` et retourne 403 (`FEATURE_DISABLED`) si absent — **avant** toute vérification de permission, car l'absence de la feature n'est pas une question de "qui a le droit" mais de "cette fonctionnalité n'existe pas pour cette boutique".
+Le middleware appelle `FeatureGate::check($store, 'rendez_vous')` et retourne 403 (`FONCTIONNALITE_DESACTIVEE`) si absent — **avant** toute vérification de permission, car l'absence de la feature n'est pas une question de "qui a le droit" mais de "cette fonctionnalité n'existe pas pour cette boutique".
 
-Le frontend (React/mobile) doit pouvoir construire dynamiquement son menu/navigation à partir d'un endpoint `GET /api/stores/{store}/features` qui retourne la liste résolue des features actives pour ce store — évitant de dupliquer l'algorithme ci-dessus côté client.
+Le frontend (React/mobile) doit pouvoir construire dynamiquement son menu/navigation à partir d'un endpoint `GET /api/boutiques/{store}/fonctionnalites` qui retourne la liste résolue des features actives pour ce store — évitant de dupliquer l'algorithme ci-dessus côté client.
 
 ## 6. Ajouter un nouveau métier sans toucher au code
 
@@ -82,8 +82,8 @@ Ce mécanisme garantit que l'ajout d'un métier (ex: "pressing") est une opérat
 
 ## 7. Dépendances entre features (ajouté suite à l'audit)
 
-**Problème identifié** : rien n'empêche aujourd'hui `StoreFeatureOverride` d'activer `appointments` sur une boutique sans que `services` et `employees` soient également actives — or un rendez-vous référence obligatoirement un `service_id`. Une feature activée seule, sans les capacités dont elle dépend fonctionnellement, casse silencieusement l'expérience plutôt que de le signaler.
+**Problème identifié** : rien n'empêche aujourd'hui `StoreFeatureOverride` d'activer `rendez_vous` sur une boutique sans que `services` et `employes` soient également actives — or un rendez-vous référence obligatoirement un `service_id`. Une feature activée seule, sans les capacités dont elle dépend fonctionnellement, casse silencieusement l'expérience plutôt que de le signaler.
 
-**Décision** : ajouter une table `FeatureDependency` (`feature_id`, `depends_on_feature_id`), données pures (ex: `appointments` dépend de `services` et de `employees`). La résolution `FeatureGate` (§4) est complétée d'une règle : **une feature ne peut être effectivement active que si toutes ses dépendances le sont aussi** — sinon elle est traitée comme inactive et un avertissement est journalisé (signal qu'une configuration de `DomainFeature`/`StoreFeatureOverride` est incohérente, à corriger côté admin plateforme, pas une erreur silencieusement absorbée). Exemple concret pour le domaine `restaurant` du besoin initial : la feature `tables` (gestion de plan de salle, voir [database.md](database.md) §13) dépend de `orders` — un domaine `delivery`-only peut activer `orders` sans `tables`, mais pas l'inverse.
+**Décision** : ajouter une table `FeatureDependency` (`fonctionnalite_id`, `depend_de_fonctionnalite_id`), données pures (ex: `rendez_vous` dépend de `services` et de `employes`). La résolution `FeatureGate` (§4) est complétée d'une règle : **une feature ne peut être effectivement active que si toutes ses dépendances le sont aussi** — sinon elle est traitée comme inactive et un avertissement est journalisé (signal qu'une configuration de `DomainFeature`/`StoreFeatureOverride` est incohérente, à corriger côté admin plateforme, pas une erreur silencieusement absorbée). Exemple concret pour le domaine `restaurant` du besoin initial : la feature `tables` (gestion de plan de salle, voir [database.md](database.md) §13) dépend de `commandes` — un domaine `delivery`-only peut activer `commandes` sans `tables`, mais pas l'inverse.
 
-Cette table reste optionnelle à alimenter : une feature sans ligne dans `FeatureDependency` n'a simplement aucune dépendance, ce qui est le cas de la majorité des features de départ (`products`, `customers`, `reports`, ...).
+Cette table reste optionnelle à alimenter : une feature sans ligne dans `FeatureDependency` n'a simplement aucune dépendance, ce qui est le cas de la majorité des features de départ (`produits`, `clients`, `rapports`, ...).

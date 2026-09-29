@@ -23,7 +23,7 @@ class BusinessUserController extends ApiController
 
         $businessUser = DB::transaction(function () use ($business, $targetUser, $role) {
             $businessUser = BusinessUser::updateOrCreate(
-                ['business_id' => $business->id, 'user_id' => $targetUser->id],
+                ['entreprise_id' => $business->id, 'utilisateur_id' => $targetUser->id],
                 ['role' => $role],
             );
 
@@ -36,7 +36,7 @@ class BusinessUserController extends ApiController
 
         return $this->success([
             'id' => $businessUser->id,
-            'user_id' => $targetUser->id,
+            'utilisateur_id' => $targetUser->id,
             'role' => $businessUser->role->value,
         ], "Utilisateur ajouté à l'entreprise.", [], 201);
     }

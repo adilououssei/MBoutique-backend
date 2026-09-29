@@ -15,7 +15,7 @@ use Tests\TestCase;
  * Proves Couche 5 of docs/multi-tenancy.md (validation scopée) actually
  * closes the gap it's meant to close: `Rule::exists()` runs a raw query
  * builder query, bypassing Eloquent's global scopes entirely, which is
- * exactly why this explicit ->where('store_id', ...) is required rather
+ * exactly why this explicit ->where('boutique_id', ...) is required rather
  * than relying on BelongsToStore.
  */
 class TenantScopedRulesTest extends TestCase
@@ -28,17 +28,17 @@ class TenantScopedRulesTest extends TestCase
         $storeB = Store::factory()->create();
 
         app(TenantContextContract::class)->setStoreId($storeA->id);
-        StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
 
         app(TenantContextContract::class)->setStoreId($storeB->id);
-        $storeUserInB = StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        $storeUserInB = StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
 
         // Back to acting within Store A's context...
         app(TenantContextContract::class)->setStoreId($storeA->id);
 
         $validator = Validator::make(
             ['store_user_id' => $storeUserInB->id],
-            ['store_user_id' => [TenantScopedRules::existsInCurrentStore('store_users', 'id')]],
+            ['store_user_id' => [TenantScopedRules::existsInCurrentStore('utilisateurs_boutique', 'id')]],
         );
 
         $this->assertTrue($validator->fails());
@@ -49,11 +49,11 @@ class TenantScopedRulesTest extends TestCase
         $storeA = Store::factory()->create();
 
         app(TenantContextContract::class)->setStoreId($storeA->id);
-        $storeUserInA = StoreUser::create(['user_id' => User::factory()->create()->id, 'status' => 'active']);
+        $storeUserInA = StoreUser::create(['utilisateur_id' => User::factory()->create()->id, 'statut' => 'actif']);
 
         $validator = Validator::make(
             ['store_user_id' => $storeUserInA->id],
-            ['store_user_id' => [TenantScopedRules::existsInCurrentStore('store_users', 'id')]],
+            ['store_user_id' => [TenantScopedRules::existsInCurrentStore('utilisateurs_boutique', 'id')]],
         );
 
         $this->assertTrue($validator->passes());

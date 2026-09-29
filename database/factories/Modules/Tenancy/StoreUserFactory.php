@@ -17,10 +17,10 @@ class StoreUserFactory extends Factory
     public function definition(): array
     {
         return [
-            'store_id' => Store::factory(),
-            'user_id' => User::factory(),
-            'status' => 'active',
-            'joined_at' => now(),
+            'boutique_id' => Store::factory(),
+            'utilisateur_id' => User::factory(),
+            'statut' => 'actif',
+            'rejoint_le' => now(),
         ];
     }
 }
