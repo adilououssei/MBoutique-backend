@@ -9,11 +9,14 @@ use App\Modules\CashRegister\Services\CashRegisterService;
 use App\Modules\Catalog\Enums\PricingMode;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\Service;
+use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Services\CustomerAccountService;
 use App\Modules\Features\Services\FeatureGate;
 use App\Modules\Inventory\Enums\StockMovementType;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Sales\Enums\PaymentMethod;
 use App\Modules\Sales\Enums\SaleStatus;
+use App\Modules\Sales\Exceptions\InvalidDepositException;
 use App\Modules\Sales\Exceptions\InvalidDiscountException;
 use App\Modules\Sales\Exceptions\NoOpenCashRegisterSessionException;
 use App\Modules\Sales\Exceptions\PricingModeNotAvailableException;
@@ -40,6 +43,7 @@ class SaleService
         private readonly InventoryService $inventory,
         private readonly CashRegisterService $cashRegisters,
         private readonly FeatureGate $features,
+        private readonly CustomerAccountService $customerAccounts,
     ) {}
 
     /**
@@ -49,6 +53,7 @@ class SaleService
      *     client_id?: int|null,
      *     mode_paiement?: string,
      *     montant_remise?: string|float|int|null,
+     *     acompte?: string|float|int|null,
      *     cle_idempotence?: string|null,
      * }  $data
      */
@@ -94,7 +99,18 @@ class SaleService
             }
             $total = bcsub($subtotal, $discount, 2);
 
-            $sale = $this->createSale($register, $session, $data, $userId, $subtotal, $discount, $total, $idempotencyKey);
+            // Vente à crédit : seul l'acompte entre en caisse, le reste va au
+            // compte client — docs/sales.md §24.
+            $onCredit = ($data['mode_paiement'] ?? null) === PaymentMethod::Credit->value;
+            $paidNow = $total;
+            if ($onCredit) {
+                $paidNow = Money::round((string) ($data['acompte'] ?? '0'));
+                if (bccomp($paidNow, $total, 2) > 0) {
+                    throw new InvalidDepositException("L'acompte ne peut pas dépasser le total de la vente.");
+                }
+            }
+
+            $sale = $this->createSale($register, $session, $data, $userId, $subtotal, $discount, $total, $idempotencyKey, $onCredit ? $paidNow : null);
 
             foreach ($lines as $line) {
                 SaleItem::create([
@@ -118,8 +134,17 @@ class SaleService
                 }
             }
 
+            // Lock order: Inventory (above), then customer, then CashRegister.
+            $owed = bcsub($total, $paidNow, 2);
+            if (bccomp($owed, '0', 2) > 0) {
+                $customer = Customer::query()->findOrFail($data['client_id']);
+                $this->customerAccounts->recordCreditSale($customer, $owed, $userId, $sale);
+            }
+
             try {
-                $this->cashRegisters->recordSale($session, $total, $userId, $sale);
+                if (! $onCredit || bccomp($paidNow, '0', 2) > 0) {
+                    $this->cashRegisters->recordSale($session, $paidNow, $userId, $sale);
+                }
             } catch (CashRegisterSessionClosedException $e) {
                 // The session closed between our check above and here
                 // (another request raced closeSession()) — surfaced as
@@ -174,9 +199,18 @@ class SaleService
                 }
             }
 
-            if (bccomp((string) $sale->montant_total, '0', 2) > 0) {
+            // Vente à crédit : la part due sort du compte client, seul
+            // l'acompte (ce qui est entré en caisse) est remboursé.
+            $paidNow = (string) ($sale->montant_acompte ?? $sale->montant_total);
+            $owed = bcsub((string) $sale->montant_total, $paidNow, 2);
+            if (bccomp($owed, '0', 2) > 0) {
+                $customer = Customer::withTrashed()->findOrFail($sale->client_id);
+                $this->customerAccounts->reverseCreditSale($customer, $owed, $userId, $sale, $reason);
+            }
+
+            if (bccomp($paidNow, '0', 2) > 0) {
                 try {
-                    $this->cashRegisters->recordRefund($session, (string) $sale->montant_total, $userId, $sale, $reason);
+                    $this->cashRegisters->recordRefund($session, $paidNow, $userId, $sale, $reason);
                 } catch (CashRegisterSessionClosedException $e) {
                     throw new NoOpenCashRegisterSessionException($e->getMessage(), previous: $e);
                 }
@@ -262,6 +296,7 @@ class SaleService
         string $discount,
         string $total,
         ?string $idempotencyKey,
+        ?string $deposit = null,
     ): Sale {
         $attributes = [
             'caisse_id' => $register->id,
@@ -271,6 +306,7 @@ class SaleService
             'sous_total' => $subtotal,
             'montant_remise' => $discount,
             'montant_total' => $total,
+            'montant_acompte' => $deposit,
             'statut' => SaleStatus::Completed,
             'mode_paiement' => PaymentMethod::from($data['mode_paiement'] ?? PaymentMethod::Cash->value),
             'cle_idempotence' => $idempotencyKey,

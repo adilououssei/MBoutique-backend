@@ -168,9 +168,60 @@ class ProductImportTest extends TestCase
         );
     }
 
-    private function xlsx(array $rows): UploadedFile
+    public function test_optional_stock_columns_initialize_the_stock(): void
     {
-        $headings = self::HEADINGS;
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
+        Sanctum::actingAs($owner);
+        $headings = [...self::HEADINGS, 'stock_initial', 'stock_minimum'];
+
+        $file = $this->xlsx([
+            ['Riz 25kg', '', '', 'R25', '', 'piece', 15000, 'oui', 18000, 'non', '', 'oui', 40, 5],
+            ['Sel 500g', '', '', 'S05', '', 'piece', 150, 'oui', 200, 'non', '', 'oui', '', ''],
+        ], $headings);
+
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file])
+            ->assertStatus(200)
+            ->assertJsonPath('donnees.importes', 2)
+            ->assertJsonPath('donnees.stocks_initialises', 1);
+
+        $rice = Product::where('sku', 'R25')->firstOrFail();
+        $this->getJson("/api/boutiques/{$store->id}/stocks/{$rice->id}")
+            ->assertJsonPath('donnees.quantite', '40.000')
+            ->assertJsonPath('donnees.quantite_minimum', '5.000');
+        $this->assertDatabaseHas('mouvements_stock', ['produit_id' => $rice->id, 'type' => 'initial', 'motif' => 'Stock initial (import Excel)']);
+        // Colonne vide : produit créé, stock non initialisé.
+        $this->assertDatabaseMissing('stocks', ['produit_id' => Product::where('sku', 'S05')->value('id')]);
+    }
+
+    public function test_an_invalid_stock_rejects_the_whole_line(): void
+    {
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
+        Sanctum::actingAs($owner);
+
+        $file = $this->xlsx([['Huile', '', '', 'H1', '', 'piece', 1000, 'oui', 1800, 'non', '', 'oui', -3, '']], [...self::HEADINGS, 'stock_initial', 'stock_minimum']);
+
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file])
+            ->assertStatus(200)
+            ->assertJsonPath('donnees.importes', 0)
+            ->assertJsonPath('donnees.erreurs.0.ligne', 2);
+        $this->assertDatabaseMissing('produits', ['sku' => 'H1']);
+    }
+
+    public function test_stock_columns_are_ignored_when_the_store_does_not_track_stock(): void
+    {
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        Sanctum::actingAs($owner);
+
+        $file = $this->xlsx([['Shampoing', '', '', 'SH1', '', 'piece', 1500, 'oui', 2500, 'non', '', 'oui', 12, 2]], [...self::HEADINGS, 'stock_initial', 'stock_minimum']);
+
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", ['fichier' => $file])
+            ->assertStatus(200)->assertJsonPath('donnees.importes', 1)->assertJsonPath('donnees.stocks_initialises', 0);
+        $this->assertDatabaseCount('stocks', 0);
+    }
+
+    private function xlsx(array $rows, ?array $headings = null): UploadedFile
+    {
+        $headings ??= self::HEADINGS;
 
         $export = new class($rows, $headings) implements Export, FromArray, WithHeadings
         {

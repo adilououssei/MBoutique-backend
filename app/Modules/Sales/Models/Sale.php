@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * App\Modules\Sales\Services\SaleService::checkout(). Never created,
  * updated, or deleted directly by a controller. See docs/sales.md.
  */
-#[Fillable(['caisse_id', 'session_caisse_id', 'client_id', 'vendeur_id', 'reference', 'sous_total', 'montant_remise', 'montant_total', 'statut', 'mode_paiement', 'cle_idempotence', 'vendue_le', 'annulee_le', 'annulee_par_id', 'motif_annulation', 'session_remboursement_id'])]
+#[Fillable(['caisse_id', 'session_caisse_id', 'client_id', 'vendeur_id', 'reference', 'sous_total', 'montant_remise', 'montant_total', 'montant_acompte', 'statut', 'mode_paiement', 'cle_idempotence', 'vendue_le', 'annulee_le', 'annulee_par_id', 'motif_annulation', 'session_remboursement_id'])]
 #[Table('ventes')]
 class Sale extends Model
 {
@@ -37,6 +37,7 @@ class Sale extends Model
             'sous_total' => 'decimal:2',
             'montant_remise' => 'decimal:2',
             'montant_total' => 'decimal:2',
+            'montant_acompte' => 'decimal:2',
             'vendue_le' => 'datetime',
             'annulee_le' => 'datetime',
         ];

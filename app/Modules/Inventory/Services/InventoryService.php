@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Services;
 
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Inventory\Enums\StockMovementType;
+use App\Modules\Inventory\Events\StockLevelChanged;
 use App\Modules\Inventory\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Exceptions\StockAlreadyInitializedException;
 use App\Modules\Inventory\Exceptions\StockNotInitializedException;
@@ -111,6 +112,21 @@ class InventoryService
         });
     }
 
+    /**
+     * Arrival of a transfer in the destination store (current tenant
+     * context): creates the stock row at 0 if the product was never
+     * stocked here, then records a TransferIn — docs/inventory.md §"Transferts".
+     */
+    public function receiveTransfer(Product $product, string $quantity, ?int $createdByUserId, ?string $reason, Model $reference): StockMovement
+    {
+        return DB::transaction(function () use ($product, $quantity, $createdByUserId, $reason, $reference) {
+            $stock = Stock::query()->where('produit_id', $product->id)->lockForUpdate()->first()
+                ?? Stock::create(['produit_id' => $product->id, 'quantite' => 0]);
+
+            return $this->applyDelta($stock, $product, StockMovementType::TransferIn, $quantity, $reason, $createdByUserId, $reference);
+        });
+    }
+
     /** Whether the product's stock row exists (i.e. has been initialized). */
     public function isInitialized(Product $product): bool
     {
@@ -196,6 +212,8 @@ class InventoryService
         ]);
 
         $stock->update(['quantite' => $after]);
+
+        StockLevelChanged::dispatch($stock, $product, $before, $after, $createdByUserId);
 
         return $movement->setRelation('stock', $stock)->setRelation('product', $product);
     }

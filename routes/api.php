@@ -25,4 +25,8 @@ require app_path('Modules/Inventory/Routes/api.php');
 require app_path('Modules/CashRegister/Routes/api.php');
 require app_path('Modules/Sales/Routes/api.php');
 require app_path('Modules/Suppliers/Routes/api.php');
+require app_path('Modules/Employees/Routes/api.php');
+require app_path('Modules/Appointments/Routes/api.php');
+require app_path('Modules/Orders/Routes/api.php');
+require app_path('Modules/Notifications/Routes/api.php');
 require app_path('Modules/Reports/Routes/api.php');

@@ -146,13 +146,24 @@ class CashRegisterService
     }
 
     /**
-     * Cash handed to a supplier for a purchase — a cash-out referencing the
-     * Purchase, so the register's history shows what the money paid for.
-     * Same InsufficientCashException guard as any cash-out. See docs/modules.md §Suppliers.
+     * A business expense paid from the drawer — a cash-out referencing what
+     * it paid for (a supplier Purchase, an EmployeePayment…), so the
+     * register's history shows where the money went. Same
+     * InsufficientCashException guard as any cash-out. See docs/modules.md
+     * §Suppliers and §Employees.
      */
-    public function recordSupplierPayment(CashRegisterSession $session, string $amount, ?int $userId, Model $reference, ?string $reason = null): CashMovement
+    public function recordExpense(CashRegisterSession $session, string $amount, ?int $userId, Model $reference, ?string $reason = null): CashMovement
     {
         return $this->recordMovement($session, CashMovementType::CashOut, bcmul($amount, '-1', 2), $userId, $reason, $reference);
+    }
+
+    /**
+     * Money received outside a sale — e.g. a customer paying off a credit
+     * (docs/customers.md §12). A cash-in referencing what it settles.
+     */
+    public function recordReceipt(CashRegisterSession $session, string $amount, ?int $userId, Model $reference, ?string $reason = null): CashMovement
+    {
+        return $this->recordMovement($session, CashMovementType::CashIn, $amount, $userId, $reason, $reference);
     }
 
     private function recordMovement(

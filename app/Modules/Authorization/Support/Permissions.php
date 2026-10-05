@@ -88,6 +88,10 @@ final class Permissions
     // l'encadrement (pas au caissier), voir docs/sales.md §20.
     public const SALES_CANCEL = 'ventes.annuler';
 
+    // Crédit client : vendre à crédit et encaisser les remboursements —
+    // docs/customers.md §12. Le caissier en a besoin au comptoir.
+    public const CREDITS_MANAGE = 'credits.gerer';
+
     // Suppliers — voir docs/modules.md §Suppliers. Les achats sont séparés des
     // fournisseurs : enregistrer un achat touche au stock et à la caisse.
     public const SUPPLIERS_VIEW = 'fournisseurs.voir';
@@ -102,6 +106,39 @@ final class Permissions
 
     // Créer un achat et enregistrer ses règlements.
     public const PURCHASES_CREATE = 'achats.creer';
+
+    // Employees — voir docs/modules.md §Employees. Salaires confidentiels :
+    // ni le caissier ni l'employé n'y ont accès.
+    public const EMPLOYEES_VIEW = 'employes.voir';
+
+    // Créer/modifier les fiches et enregistrer les paiements (salaire, avance, prime).
+    public const EMPLOYEES_MANAGE = 'employes.gerer';
+
+    // Appointments — docs/modules.md §Appointments. Le caissier (souvent à
+    // l'accueil d'un salon) prend et déplace les rendez-vous ; l'employé
+    // consulte le planning.
+    public const APPOINTMENTS_VIEW = 'rendez_vous.voir';
+
+    public const APPOINTMENTS_CREATE = 'rendez_vous.creer';
+
+    // Déplacer, confirmer, terminer, marquer absent.
+    public const APPOINTMENTS_UPDATE = 'rendez_vous.modifier';
+
+    public const APPOINTMENTS_CANCEL = 'rendez_vous.annuler';
+
+    // Orders — docs/modules.md §Orders. Serveurs et cuisine (rôle employé)
+    // prennent et font avancer les commandes ; encaisser exige en plus ventes.creer.
+    public const ORDERS_VIEW = 'commandes.voir';
+
+    public const ORDERS_CREATE = 'commandes.creer';
+
+    // Ajouter/retirer des lignes, faire avancer le statut.
+    public const ORDERS_UPDATE = 'commandes.modifier';
+
+    public const ORDERS_CANCEL = 'commandes.annuler';
+
+    // Créer/renommer/désactiver les tables de la salle.
+    public const TABLES_MANAGE = 'tables.gerer';
 
     // Reports (Phase 6, tableau de bord) — see app/Modules/Reports/README.md. Read-only
     // aggregates over Sales; the consolidated multi-store variant
@@ -141,12 +178,24 @@ final class Permissions
             self::SALES_VIEW,
             self::SALES_CREATE,
             self::SALES_CANCEL,
+            self::CREDITS_MANAGE,
             self::SUPPLIERS_VIEW,
             self::SUPPLIERS_CREATE,
             self::SUPPLIERS_UPDATE,
             self::SUPPLIERS_DELETE,
             self::PURCHASES_VIEW,
             self::PURCHASES_CREATE,
+            self::EMPLOYEES_VIEW,
+            self::EMPLOYEES_MANAGE,
+            self::APPOINTMENTS_VIEW,
+            self::APPOINTMENTS_CREATE,
+            self::APPOINTMENTS_UPDATE,
+            self::APPOINTMENTS_CANCEL,
+            self::ORDERS_VIEW,
+            self::ORDERS_CREATE,
+            self::ORDERS_UPDATE,
+            self::ORDERS_CANCEL,
+            self::TABLES_MANAGE,
             self::REPORTS_VIEW,
         ];
     }

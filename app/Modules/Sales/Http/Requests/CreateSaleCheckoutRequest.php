@@ -38,10 +38,13 @@ class CreateSaleCheckoutRequest extends FormRequest
             // montant brut de la ligne par SaleService.
             'lignes.*.remise' => ['nullable', 'numeric', 'min:0'],
             'caisse_id' => ['required', 'integer', TenantScopedRules::existsInCurrentStore('caisses')],
-            'client_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('clients')],
-            // Only cash is accepted in this phase — see PaymentMethod::acceptedForCheckout().
+            // Obligatoire pour une vente à crédit : la dette doit avoir un débiteur.
+            'client_id' => ['nullable', 'required_if:mode_paiement,'.PaymentMethod::Credit->value, 'integer', TenantScopedRules::existsInCurrentStore('clients')],
+            // Espèces ou crédit — see PaymentMethod::acceptedForCheckout().
             'mode_paiement' => ['sometimes', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::acceptedForCheckout()))],
             'montant_remise' => ['nullable', 'numeric', 'min:0'],
+            // Vente à crédit : part payée comptant maintenant (plafonnée au total par SaleService).
+            'acompte' => ['nullable', 'numeric', 'min:0'],
             'cle_idempotence' => ['nullable', 'string', 'max:100'],
         ];
     }

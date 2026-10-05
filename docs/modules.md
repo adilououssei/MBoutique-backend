@@ -67,7 +67,7 @@ Annuaire fournisseur, référencé par les entrées de stock (`StockMovement` de
 >
 > - **Fournisseurs** (`fournisseurs`) : CRUD `/api/boutiques/{store}/fournisseurs`, soft delete. La ressource expose `total_achats` et `solde_du` (somme des achats − somme réglée).
 > - **Achats** (`achats`, `lignes_achat`) : `POST /achats` crée une réception de marchandise. `PurchaseService` (seul point d'écriture) entre les quantités en stock (`InventoryService::addStock()`, type `achat`, référence = l'achat), ou **initialise** le stock d'un produit jamais stocké. Il met aussi à jour `produits.prix_achat` avec le coût unitaire, sauf si `mettre_a_jour_prix_achat=false`. Une boutique sans la feature `stock` enregistre l'achat sans mouvement de quantité (même règle que Sales). Pas de PUT/DELETE : historique append-only.
-> - **Règlements** (`paiements_achat`) : à la création (`paiement`) ou ensuite (`POST /achats/{achat}/paiements`), total ou partiel, jamais au-delà du reste dû (`PAIEMENT_INVALIDE`). Mode `caisse` : sortie de la session ouverte de `caisse_id` (`CashRegisterService::recordSupplierPayment()`, mouvement `sortie` référencé, `SOLDE_CAISSE_INSUFFISANT` / `AUCUNE_SESSION_CAISSE_OUVERTE`). Mode `externe` : payé hors caisse. Sans règlement, l'achat est à crédit (`statut_paiement` : `paye` / `partiel` / `non_paye`).
+> - **Règlements** (`paiements_achat`) : à la création (`paiement`) ou ensuite (`POST /achats/{achat}/paiements`), total ou partiel, jamais au-delà du reste dû (`PAIEMENT_INVALIDE`). Mode `caisse` : sortie de la session ouverte de `caisse_id` (`CashRegisterService::recordExpense()`, mouvement `sortie` référencé, `SOLDE_CAISSE_INSUFFISANT` / `AUCUNE_SESSION_CAISSE_OUVERTE`). Mode `externe` : payé hors caisse. Sans règlement, l'achat est à crédit (`statut_paiement` : `paye` / `partiel` / `non_paye`).
 > - Tout-ou-rien en transaction, verrous dans le même ordre que Sales (Inventory puis CashRegister). Idempotence par `cle_idempotence`.
 > - Permissions : `fournisseurs.{voir,creer,modifier,supprimer}`, `achats.{voir,creer}`. Propriétaire/administrateur/gérant : tout ; caissier : `fournisseurs.voir` seulement. Accordées aux boutiques existantes par migration.
 > - Reste à faire : annulation/retour d'un achat, coût moyen pondéré.
@@ -75,11 +75,36 @@ Annuaire fournisseur, référencé par les entrées de stock (`StockMovement` de
 ### Employees
 La fiche employé (nom, poste, planning, rémunération éventuelle) est distincte du `StoreUser` : un employé peut ne jamais se connecter à l'application (ex: personnel de ménage) alors qu'un `StoreUser` est nécessairement un compte applicatif. Un `Employee` peut optionnellement être lié à un `StoreUser` s'il a un accès.
 
+> **Implémenté (2026-10-07).** Feature `employes`.
+>
+> - **Employés** (`employes`) : CRUD `/api/boutiques/{store}/employes`, soft delete. Nom, poste, téléphone, adresse, date d'embauche, `salaire` + `periodicite_salaire` (`mensuel`/`hebdomadaire`/`journalier`, requise si un salaire est saisi), notes, actif. `utilisateur_id` facultatif : doit être membre de la boutique (`utilisateurs_boutique`), un seul employé par compte. La ressource expose `paye_ce_mois` (somme versée depuis le 1er du mois).
+> - **Paiements** (`paiements_employe`) : `POST /employes/{employee}/paiements`, `type` `salaire`/`avance`/`prime`, `periode` libre (« Octobre 2026 »). Mode `caisse` : sortie de la session ouverte (`CashRegisterService::recordExpense()`, mouvement `sortie` référencé `paiement_employe`). Mode `externe` : hors caisse. Tout-ou-rien ; erreurs `SOLDE_CAISSE_INSUFFISANT` / `AUCUNE_SESSION_CAISSE_OUVERTE`. Append-only.
+> - Permissions : `employes.voir`, `employes.gerer` — propriétaire, administrateur, gérant. Caissier et employé : aucun accès (salaires confidentiels). Accordées aux boutiques existantes par migration.
+> - Reste à faire : planning, retenue automatique des avances sur la paie, prestations par employé (préparé pour Appointments).
+
 ### Appointments
 Prise de rendez-vous : `Appointment` liant un `Service` (Catalog), un `Employee` et un `Customer`, avec gestion de créneaux/disponibilité. Module central pour les métiers de service (coiffeur, salon de beauté), inutile pour un supermarché — d'où son activation conditionnée par `Features`.
 
+> **Implémenté (2026-10-08).** Feature `rendez_vous` (dépend de `services` et `employes`).
+>
+> - Table `rendez_vous` : `service_id`, `employe_id` (nullable : « n'importe qui »), `client_id` **ou** `nom_client`/`telephone_client` (réservation au téléphone), `debut_le`, `fin_le`, `statut` (`prevu`, `confirme`, `termine`, `annule`, `absent`), `notes`, `motif_annulation`, `vente_id`.
+> - `fin_le` = `debut_le` + `services.duree_minutes` (30 min par défaut), ou `duree_minutes` forcée. Déplacer garde la durée ; changer de service reprend celle du service.
+> - **Non-chevauchement par employé** dans `AppointmentService`, en transaction avec `lockForUpdate()` sur la ligne `employes` (sérialise les réservations concurrentes). Bloquent le créneau : `prevu`, `confirme`, `termine`. Deux créneaux adjacents (fin = début) sont acceptés. Erreur `CRENEAU_INDISPONIBLE`.
+> - Routes `/api/boutiques/{store}/rendez-vous` : liste (`du`/`au` en instants ISO 8601 — l'application envoie les bornes de la journée locale —, `employe_id`, `client_id`, `statut`), création, détail, `PUT` (déplacer/modifier), `POST /{id}/statut` (`confirme`, `termine` + `vente_id` facultatif, `absent`), `POST /{id}/annuler`. Un rendez-vous terminé, annulé ou absent ne change plus (`RENDEZ_VOUS_CLOS`).
+> - Permissions : `rendez_vous.{voir,creer,modifier,annuler}`. Propriétaire/administrateur/gérant et caissier (accueil) : tout ; employé : `voir`. Accordées aux boutiques existantes par migration.
+> - Reste à faire : horaires d'ouverture et jours de congé par employé, rappels (module Notifications).
+
 ### Orders
 Workflow de commande *avant* finalisation : commande de table (restaurant), commande à emporter/livraison. Une `Order` a un cycle de vie (en préparation, prête, servie/livrée) et se résout en `Sale` au moment du paiement. Distinct de `Sales` qui est la transaction déjà finalisée.
+
+> **Implémenté (2026-10-09).** Features `commandes` et `tables` (qui dépend de `commandes`).
+>
+> - **Tables** (`tables_salle`) : nom, capacité, actif — `GET/POST /tables`, `PUT /tables/{table}` (désactiver plutôt que supprimer). `occupee` et la commande en cours sont **dérivés** des commandes ouvertes (`DiningTable::openOrder()`), jamais saisis. Une seule commande ouverte par table (`TABLE_OCCUPEE`).
+> - **Commandes** (`commandes`, `lignes_commande`) : `type` `sur_place` (table) / `a_emporter` / `livraison` (adresse) / `depot` (atelier, pressing : `date_promise`). Client enregistré ou `nom_client`/`telephone_client`. Lignes = produit (+ `mode_prix`) **ou** service, avec `note` ; prix figé à la commande à titre indicatif.
+> - Cycle : `en_attente` → `en_preparation` → `prete` → `servie` (librement, tant que la commande est ouverte), puis `payee` (encaissement) ou `annulee`. Une commande close ne change plus (`COMMANDE_CLOSE`).
+> - **Encaisser** (`POST /commandes/{id}/encaisser`, `caisse_id`, `montant_remise`) : `OrderService` appelle `SaleService::checkout()` — prix recalculés serveur, stock, caisse, mêmes codes d'erreur que Sales — avec la clé d'idempotence `commande-{id}` (un double appui ne crée jamais deux ventes), puis lie `vente_id`. Tout-ou-rien : une erreur laisse la commande ouverte.
+> - Permissions : `commandes.{voir,creer,modifier,annuler}`, `tables.gerer`. Encaisser exige aussi `ventes.creer`. Propriétaire/administrateur/gérant : tout ; caissier : tout sauf `tables.gerer` ; employé (serveur, cuisine) : voir/créer/modifier. Accordées aux boutiques existantes par migration.
+> - Reste à faire : acompte à la commande (pressing), impression du bon de cuisine, livraison suivie.
 
 ### Reports
 Lecture seule : agrège les données des autres modules (ventes par période, marges, rotation de stock, présence employé) et gère d'éventuels `ReportPreset` sauvegardés par un utilisateur. Ne possède pas de données métier primaires — dépend en lecture de tous les autres modules, jamais l'inverse.
@@ -89,6 +114,17 @@ Lecture seule : agrège les données des autres modules (ventes par période, ma
 
 ### Notifications
 Journal des notifications envoyées (email, push, SMS futur) et préférences de canal par utilisateur, construit sur le système de notifications natif de Laravel.
+
+> **Implémenté (2026-10-10) — centre de notifications dans l'application (canal `database`).**
+>
+> - Table standard Laravel `notifications` (nom imposé par le framework). Une seule classe `StoreAlert` : `data` = `boutique_id`, `categorie`, `titre`, `message`, `lien` (`{ecran: stock|commande|rendez_vous, id}`).
+> - **Découplage par événements** : Inventory émet `StockLevelChanged` (depuis `applyDelta()`, donc pour tout mouvement), Orders `OrderStatusChanged`, Appointments `AppointmentBooked` — tous `ShouldDispatchAfterCommit` (rien n'est notifié si la transaction est annulée). Notifications les écoute ; les autres modules ne le connaissent pas.
+> - Alertes : **stock faible / rupture** au franchissement du seuil (une fois, pas à chaque vente) → `stock.ajuster` ; **commande prête** → `commandes.voir` sauf l'auteur ; **nouveau rendez-vous** → compte lié à l'employé ; **rappel** 1 h avant → compte de l'employé, sinon `rendez_vous.modifier`.
+> - Destinataires : `StoreRecipients::withPermission()` (membres actifs ayant la permission dans CETTE boutique — contexte Spatie posé puis restauré).
+> - Rappels : commande `notifications:rappels-rendez-vous`, planifiée toutes les 5 minutes, idempotente. **Exige le planificateur** : `* * * * * php artisan schedule:run` en production, `php artisan schedule:work` en développement.
+> - API : `GET /boutiques/{store}/notifications` (`non_lues=1`), `GET …/compteur`, `POST …/{id}/lire`, `POST …/tout-lire` — notifications de l'utilisateur connecté, pour cette boutique uniquement.
+> - Heures des messages au fuseau `boutiques.fuseau_horaire`.
+> - Reste à faire : push (application fermée) — ajouter un canal dans `StoreAlert::via()` avec `expo-notifications`, qui exige un build de développement (plus disponible dans Expo Go) ; préférences de canal par utilisateur.
 
 ## Règles de dépendance entre modules
 

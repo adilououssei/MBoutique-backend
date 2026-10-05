@@ -97,3 +97,13 @@ Non implémenté ici. Ce que Sales devra respecter :
 - CRM avancé, messagerie, SMS, WhatsApp.
 - Détection de doublon (name/phone/email) — non bloquante, pourra être ajoutée comme aide UI plus tard.
 - Toute intégration réelle avec `Sales` (module non implémenté).
+
+## 12. Crédit client (2026-10-11)
+
+Le point « Crédit / dette client » du §11 est désormais livré.
+
+- **Ledger** `mouvements_compte_client` (append-only, comme `mouvements_stock`/`mouvements_caisse`) : `vente_credit` (+), `paiement` (−), `annulation_vente` (−). Le solde n'est pas une colonne : c'est la somme des montants (positif = le client doit, négatif = avoir).
+- **Écriture** uniquement via `CustomerAccountService`, qui verrouille la ligne `clients` (deux remboursements simultanés ne dépassent jamais la dette). Ordre des verrous dans une vente : Inventory → client → CashRegister.
+- **API** : `GET clients/{id}/compte` (historique paginé, `meta.solde`), `POST clients/{id}/paiements` `{montant, mode: caisse|externe, caisse_id, note}`. En mode `caisse`, une entrée de caisse (`CashRegisterService::recordReceipt`) référence l'écriture. Montant > dette → 422 `PAIEMENT_INVALIDE`.
+- **Liste** : chaque client porte `solde` ; `?debiteurs=1` ne garde que ceux qui doivent.
+- **Permission** `credits.gerer` : propriétaire, administrateur, gérant, caissier (le remboursement se fait au comptoir). Migration d'octroi pour les boutiques existantes.

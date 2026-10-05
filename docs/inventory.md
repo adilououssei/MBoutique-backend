@@ -133,3 +133,13 @@ Aucune nouvelle `Feature` créée : `stock` existait déjà depuis la Phase 2 (`
 - Notifications de stock faible (SMS, push) — uniquement la donnée (`stock_faible`) est exposée, aucune alerte automatique.
 - Toute intégration réelle avec `Sales`, `CashRegister`, `Cart`, `Payments`, achats/commandes fournisseur — hors périmètre explicite de cette phase.
 - Commande artisan de réconciliation `SUM(mouvements_stock.quantity)` vs `stocks.quantite` (mentionnée dans la conception d'origine comme filet de sécurité) — non implémentée, à considérer si une divergence est un jour constatée en production.
+
+## Transferts entre boutiques (2026-10-12)
+
+Envoi immédiat de marchandise d'une boutique vers une autre **de la même entreprise** (pas d'état « en transit » : la sortie et l'entrée sont enregistrées dans la même transaction).
+
+- **API** (sous `feature:stock`) : `GET transferts?sens=sortant|entrant`, `GET transferts/{id}`, `GET transferts/destinations`, `POST transferts` `{boutique_destination_id, lignes: [{produit_id, quantite}], note}`. Erreurs : `TRANSFERT_INVALIDE`, `STOCK_INSUFFISANT`, `STOCK_NON_INITIALISE`.
+- **Droits** : `stock.ajuster` dans la boutique source **et** dans la destination (membre actif, destination active avec la fonctionnalité `stock`). Pas de nouvelle permission.
+- **Mouvements** : `transfert_sortie` (source) et `transfert_entree` (destination), tous deux référencés au transfert (`reference_type = transfert_stock`). Non saisissables à la main.
+- **Produit dans la destination** : retrouvé par SKU, puis code-barres, puis slug (nom) — y compris un produit supprimé, qui est restauré. Sinon une copie de la fiche est créée (prix, codes, unité ; catégorie retrouvée par son nom ; pas de photo). `produit_cree` sur la ligne l'indique. Le stock y est créé à 0 s'il n'existait pas.
+- **Isolation** : `transferts_stock` n'utilise pas `BelongsToStore` (le transfert appartient aux deux boutiques) ; toujours lire via `StockTransfer::involving($store)`. Les écritures dans la destination se font en basculant `TenantContext` le temps de l'opération ; les deux boutiques sont traitées dans l'ordre de leur id (pas de deadlock entre transferts croisés).

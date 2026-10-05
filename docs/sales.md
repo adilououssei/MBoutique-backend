@@ -205,3 +205,11 @@ Toutes en `422`, jamais une `500`.
 
 - Vendre un produit dont le stock n'a jamais été initialisé renvoie désormais `422 STOCK_NON_INITIALISE` (auparavant une 500 non gérée).
 
+
+## 24. Vente à crédit (2026-10-11)
+
+`mode_paiement: credit` (exige `client_id` et la permission `credits.gerer`) avec `acompte` optionnel :
+
+- seul l'acompte entre en caisse (`montant_acompte` sur `ventes`, null pour une vente en espèces) ; le reste (`montant_credit` dans la réponse) est inscrit au compte client (docs/customers.md §12) ;
+- acompte > total → 422 `ACOMPTE_INVALIDE` ;
+- l'annulation rembourse uniquement l'acompte et retire la part à crédit du compte client (si le client avait déjà remboursé, son solde devient un avoir).

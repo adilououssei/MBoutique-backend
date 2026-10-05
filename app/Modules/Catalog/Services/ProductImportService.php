@@ -2,12 +2,14 @@
 
 namespace App\Modules\Catalog\Services;
 
+use App\Modules\Catalog\Contracts\InitialStockRecorder;
 use App\Modules\Catalog\Exceptions\ProductImportRejectedException;
 use App\Modules\Catalog\Imports\ProductsImport;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Support\ProductRules;
 use App\Modules\Tenancy\Models\Store;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -31,14 +33,17 @@ class ProductImportService
     /** Past this many data rows, the file is rejected outright — not partially processed. */
     private const MAX_ROWS = 2000;
 
-    public function __construct(private readonly ProductService $products) {}
+    public function __construct(
+        private readonly ProductService $products,
+        private readonly InitialStockRecorder $stock,
+    ) {}
 
     /**
      * @return array{total_lignes: int, importes: int, rejetes: int, erreurs: array<int, array{ligne: int, erreurs: array<string, array<int, string>>}>}
      *
      * @throws ProductImportRejectedException the whole file is unreadable or has too many rows
      */
-    public function import(UploadedFile $file, Store $store): array
+    public function import(UploadedFile $file, Store $store, ?int $userId = null): array
     {
         try {
             $sheets = Excel::toCollection(new ProductsImport, $file);
@@ -55,14 +60,22 @@ class ProductImportService
         }
 
         $imported = 0;
+        $stocked = 0;
         $errors = [];
+        // Colonnes stock_initial / stock_minimum : ignorées si la boutique ne suit pas le stock.
+        $tracksStock = $this->stock->tracksStock($store);
 
         foreach ($rows as $index => $row) {
             $line = $index + 2; // 1 = header row
 
             [$data, $categoryError] = $this->normalizeRow($row->toArray(), $store);
 
-            $validator = Validator::make($data, ProductRules::rules());
+            $stockData = $this->normalizeStock($row->toArray());
+            $validator = Validator::make([...$data, ...$stockData], [
+                ...ProductRules::rules(),
+                'stock_initial' => ['nullable', 'numeric', 'min:0'],
+                'stock_minimum' => ['nullable', 'numeric', 'min:0'],
+            ]);
             $validator->fails();
 
             if ($categoryError !== null) {
@@ -75,13 +88,25 @@ class ProductImportService
                 continue;
             }
 
-            $this->products->create($validator->validated());
+            $validated = $validator->validated();
+            $initial = $tracksStock ? ($validated['stock_initial'] ?? null) : null;
+            unset($validated['stock_initial'], $validated['stock_minimum']);
+
+            // Produit et stock initial ensemble ou pas du tout (transaction par ligne).
+            DB::transaction(function () use ($validated, $initial, $stockData, $userId) {
+                $product = $this->products->create($validated);
+                if ($initial !== null) {
+                    $this->stock->record($product, (string) $initial, $stockData['stock_minimum'], $userId, 'Stock initial (import Excel)');
+                }
+            });
             $imported++;
+            $stocked += $initial !== null ? 1 : 0;
         }
 
         return [
             'total_lignes' => $rows->count(),
             'importes' => $imported,
+            'stocks_initialises' => $stocked,
             'rejetes' => count($errors),
             'erreurs' => $errors,
         ];
@@ -132,6 +157,15 @@ class ProductImportService
         ];
 
         return [$data, $categoryError];
+    }
+
+    /** @return array{stock_initial: ?string, stock_minimum: ?string} */
+    private function normalizeStock(array $row): array
+    {
+        return [
+            'stock_initial' => $this->nullableString($row['stock_initial'] ?? null),
+            'stock_minimum' => $this->nullableString($row['stock_minimum'] ?? null),
+        ];
     }
 
     private function nullableString(mixed $value): ?string

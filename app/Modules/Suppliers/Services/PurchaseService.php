@@ -148,7 +148,7 @@ class PurchaseService
             $session = CashRegisterSession::query()->findOrFail($register->session_ouverte_id);
 
             try {
-                $this->cashRegisters->recordSupplierPayment($session, $amount, $userId, $purchase, "Règlement de l'achat {$purchase->reference}");
+                $this->cashRegisters->recordExpense($session, $amount, $userId, $purchase, "Règlement de l'achat {$purchase->reference}");
             } catch (CashRegisterSessionClosedException $e) {
                 throw new CashRegisterNotOpenException($e->getMessage(), previous: $e);
             }

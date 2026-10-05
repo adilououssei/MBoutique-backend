@@ -183,3 +183,7 @@ Le backend Sales devra alors : (1) vérifier que `Product` appartient au store c
 - Hors du CRUD JSON : `image` n'est ni dans `ProductRules` ni dans `$fillable` ; création/modification restent en JSON, la photo est un envoi séparé. Même autorisation que la modification (`ProductPolicy::update`, `produits.modifier`), même isolation par boutique (scoped binding → 404).
 - Prérequis serveur : `php artisan storage:link` (lien `public/storage`).
 - Tests : `tests/Feature/Modules/Catalog/ProductImageTest.php`.
+
+## Import Excel : stock initial (2026-10-11)
+
+Colonnes optionnelles `stock_initial` et `stock_minimum`. Si la boutique suit le stock (feature `stock`), une valeur `stock_initial` initialise le stock du produit dans la même transaction que sa création (contrat `Catalog\Contracts\InitialStockRecorder`, implémenté par Inventory) ; sinon les colonnes sont ignorées. Le rapport ajoute `stocks_initialises`.

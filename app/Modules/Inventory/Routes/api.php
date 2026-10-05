@@ -2,6 +2,7 @@
 
 use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Inventory\Http\Controllers\StockMovementController;
+use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,5 +25,13 @@ Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques
         Route::put('/{product}', [StockController::class, 'update'])->name('update');
         Route::get('/{product}/mouvements', [StockMovementController::class, 'index'])->name('mouvements.index');
         Route::post('/{product}/mouvements', [StockMovementController::class, 'store'])->name('mouvements.store');
+    });
+
+    // Transferts entre boutiques de la même entreprise — docs/inventory.md §"Transferts".
+    Route::middleware('feature:stock')->prefix('transferts')->name('transferts.')->group(function () {
+        Route::get('/', [StockTransferController::class, 'index'])->name('index');
+        Route::get('/destinations', [StockTransferController::class, 'destinations'])->name('destinations');
+        Route::post('/', [StockTransferController::class, 'store'])->name('store');
+        Route::get('/{transfer}', [StockTransferController::class, 'show'])->whereNumber('transfer')->name('show');
     });
 });

@@ -23,6 +23,12 @@ class SalePolicy
         return $user->can('ventes.creer');
     }
 
+    /** Vendre à crédit exige en plus credits.gerer — docs/sales.md §24. */
+    public function sellOnCredit(User $user, Store $store): bool
+    {
+        return $user->can('ventes.creer') && $user->can('credits.gerer');
+    }
+
     public function cancel(User $user, Sale $sale, Store $store): bool
     {
         return $sale->boutique_id === $store->id && $user->can('ventes.annuler');

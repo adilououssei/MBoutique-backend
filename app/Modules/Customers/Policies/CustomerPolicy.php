@@ -33,6 +33,12 @@ class CustomerPolicy
         return $customer->boutique_id === $store->id && $user->can('clients.modifier');
     }
 
+    /** Crédit : vendre à crédit et encaisser un remboursement — docs/customers.md §12. */
+    public function manageCredit(User $user, Customer $customer, Store $store): bool
+    {
+        return $customer->boutique_id === $store->id && $user->can('credits.gerer');
+    }
+
     public function delete(User $user, Customer $customer, Store $store): bool
     {
         return $customer->boutique_id === $store->id && $user->can('clients.supprimer');

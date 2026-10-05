@@ -28,6 +28,9 @@ class SaleResource extends JsonResource
             'remise' => $this->montant_remise,
             'total' => $this->montant_total,
             'mode_paiement' => $this->mode_paiement->value,
+            // Vente à crédit : payé comptant / reste mis sur le compte client.
+            'acompte' => $this->montant_acompte,
+            'montant_credit' => $this->montant_acompte !== null ? bcsub((string) $this->montant_total, (string) $this->montant_acompte, 2) : null,
             'statut' => $this->statut->value,
             'vendue_le' => $this->vendue_le,
             'annulation' => $this->isCancelled() ? [

@@ -20,7 +20,7 @@ class ProductImportController extends ApiController
         $this->authorize('import', [Product::class, $store]);
 
         try {
-            $report = $this->imports->import($request->file('fichier'), $store);
+            $report = $this->imports->import($request->file('fichier'), $store, $request->user()?->id);
         } catch (ProductImportRejectedException $e) {
             return $this->error($e->getMessage(), [], 422, 'IMPORT_PRODUITS_REJETE');
         }

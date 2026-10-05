@@ -6,6 +6,7 @@ use App\Modules\Customers\Http\Requests\CreateCustomerRequest;
 use App\Modules\Customers\Http\Requests\UpdateCustomerRequest;
 use App\Modules\Customers\Http\Resources\CustomerResource;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Models\CustomerAccountEntry;
 use App\Modules\Tenancy\Models\Store;
 use App\Shared\Http\Controllers\ApiController;
 use Illuminate\Http\Request;
@@ -17,6 +18,9 @@ class CustomerController extends ApiController
         $this->authorize('viewAny', [Customer::class, $store]);
 
         $customers = Customer::query()
+            ->withSum('accountEntries', 'montant')
+            ->when($request->boolean('debiteurs'), fn ($q) => $q->whereIn('id', CustomerAccountEntry::query()
+                ->select('client_id')->groupBy('client_id')->havingRaw('SUM(montant) > 0')))
             ->when($request->filled('recherche'), function ($q) use ($request) {
                 $term = '%'.$request->string('recherche').'%';
                 $q->where(function ($q) use ($term) {
@@ -45,7 +49,7 @@ class CustomerController extends ApiController
     {
         $this->authorize('view', [$customer, $store]);
 
-        return $this->success(new CustomerResource($customer));
+        return $this->success(new CustomerResource($customer->loadSum('accountEntries', 'montant')));
     }
 
     public function update(Store $store, Customer $customer, UpdateCustomerRequest $request)

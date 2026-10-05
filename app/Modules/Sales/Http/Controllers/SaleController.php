@@ -5,6 +5,8 @@ namespace App\Modules\Sales\Http\Controllers;
 use App\Modules\CashRegister\Exceptions\InsufficientCashException;
 use App\Modules\Inventory\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Exceptions\StockNotInitializedException;
+use App\Modules\Sales\Enums\PaymentMethod;
+use App\Modules\Sales\Exceptions\InvalidDepositException;
 use App\Modules\Sales\Exceptions\InvalidDiscountException;
 use App\Modules\Sales\Exceptions\NoOpenCashRegisterSessionException;
 use App\Modules\Sales\Exceptions\PricingModeNotAvailableException;
@@ -42,6 +44,9 @@ class SaleController extends ApiController
     public function checkout(Store $store, CreateSaleCheckoutRequest $request)
     {
         $this->authorize('create', [Sale::class, $store]);
+        if ($request->input('mode_paiement') === PaymentMethod::Credit->value) {
+            $this->authorize('sellOnCredit', [Sale::class, $store]);
+        }
 
         try {
             $sale = $this->sales->checkout($store, $request->validated(), $request->user()?->id);
@@ -51,6 +56,8 @@ class SaleController extends ApiController
             return $this->error($e->getMessage(), [], 422, 'MODE_PRIX_INDISPONIBLE');
         } catch (InvalidDiscountException $e) {
             return $this->error($e->getMessage(), [], 422, 'REMISE_INVALIDE');
+        } catch (InvalidDepositException $e) {
+            return $this->error($e->getMessage(), [], 422, 'ACOMPTE_INVALIDE');
         } catch (InsufficientStockException $e) {
             return $this->error($e->getMessage(), [], 422, 'STOCK_INSUFFISANT');
         } catch (StockNotInitializedException $e) {

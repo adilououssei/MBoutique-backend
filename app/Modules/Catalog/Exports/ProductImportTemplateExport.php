@@ -20,6 +20,7 @@ class ProductImportTemplateExport implements Export, FromArray, WithHeadings
             'nom', 'categorie', 'description', 'sku', 'code_barres', 'unite',
             'prix_achat', 'vente_detail_active', 'prix_detail',
             'vente_gros_active', 'prix_gros', 'actif',
+            'stock_initial', 'stock_minimum',
         ];
     }
 
@@ -30,6 +31,7 @@ class ProductImportTemplateExport implements Export, FromArray, WithHeadings
                 'Coca-Cola 50cl', 'Boissons', 'Bouteille en verre 50cl', 'CC001', '123456789', 'piece',
                 300, 'true', 500,
                 'true', 450, 'true',
+                48, 10,
             ],
         ];
     }

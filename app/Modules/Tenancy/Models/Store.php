@@ -2,12 +2,16 @@
 
 namespace App\Modules\Tenancy\Models;
 
+use App\Modules\Appointments\Models\Appointment;
 use App\Modules\CashRegister\Models\CashRegister;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\Service;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Employees\Models\Employee;
 use App\Modules\Features\Models\BusinessDomain;
+use App\Modules\Orders\Models\DiningTable;
+use App\Modules\Orders\Models\Order;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Suppliers\Models\Purchase;
 use App\Modules\Suppliers\Models\Supplier;
@@ -95,6 +99,26 @@ class Store extends Model
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class, 'boutique_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'boutique_id');
+    }
+
+    public function diningTables(): HasMany
+    {
+        return $this->hasMany(DiningTable::class, 'boutique_id');
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'boutique_id');
+    }
+
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'boutique_id');
     }
 
     public function suppliers(): HasMany
