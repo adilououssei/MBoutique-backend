@@ -84,6 +84,11 @@ final class Permissions
 
     public const SALES_CREATE = 'ventes.creer';
 
+    // Reports (Phase 6, tableau de bord) — see app/Modules/Reports/README.md. Read-only
+    // aggregates over Sales; the consolidated multi-store variant
+    // (rapports.voir_consolide) is business-level and not built yet.
+    public const REPORTS_VIEW = 'rapports.voir';
+
     public static function all(): array
     {
         return [
@@ -116,6 +121,7 @@ final class Permissions
             self::CASH_REGISTER_ADJUST,
             self::SALES_VIEW,
             self::SALES_CREATE,
+            self::REPORTS_VIEW,
         ];
     }
 }

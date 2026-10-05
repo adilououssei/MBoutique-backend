@@ -97,9 +97,9 @@ final class StoreRole
         ];
 
         return [
-            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
-            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
-            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess],
+            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::REPORTS_VIEW],
+            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::REPORTS_VIEW],
+            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::REPORTS_VIEW],
             // Cashier: read-only everywhere else, but operates the
             // register fully (opens/closes their own shift, cash in/out)
             // and processes sales — "Caissier : ventes.creer, ventes.voir,

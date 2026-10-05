@@ -5,6 +5,7 @@ use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Customers\Providers\CustomersServiceProvider;
 use App\Modules\Features\Providers\FeaturesServiceProvider;
 use App\Modules\Inventory\Providers\InventoryServiceProvider;
+use App\Modules\Reports\Providers\ReportsServiceProvider;
 use App\Modules\Sales\Providers\SalesServiceProvider;
 use App\Modules\Subscriptions\Providers\SubscriptionsServiceProvider;
 use App\Modules\Tenancy\Providers\TenancyServiceProvider;
@@ -20,4 +21,5 @@ return [
     InventoryServiceProvider::class,
     CashRegisterServiceProvider::class,
     SalesServiceProvider::class,
+    ReportsServiceProvider::class,
 ];
