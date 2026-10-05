@@ -8,6 +8,7 @@ use App\Modules\Inventory\Providers\InventoryServiceProvider;
 use App\Modules\Reports\Providers\ReportsServiceProvider;
 use App\Modules\Sales\Providers\SalesServiceProvider;
 use App\Modules\Subscriptions\Providers\SubscriptionsServiceProvider;
+use App\Modules\Suppliers\Providers\SuppliersServiceProvider;
 use App\Modules\Tenancy\Providers\TenancyServiceProvider;
 use App\Providers\AppServiceProvider;
 
@@ -21,5 +22,6 @@ return [
     InventoryServiceProvider::class,
     CashRegisterServiceProvider::class,
     SalesServiceProvider::class,
+    SuppliersServiceProvider::class,
     ReportsServiceProvider::class,
 ];

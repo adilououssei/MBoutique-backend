@@ -84,6 +84,25 @@ final class Permissions
 
     public const SALES_CREATE = 'ventes.creer';
 
+    // Annulation = remise en stock + remboursement en caisse : réservée à
+    // l'encadrement (pas au caissier), voir docs/sales.md §20.
+    public const SALES_CANCEL = 'ventes.annuler';
+
+    // Suppliers — voir docs/modules.md §Suppliers. Les achats sont séparés des
+    // fournisseurs : enregistrer un achat touche au stock et à la caisse.
+    public const SUPPLIERS_VIEW = 'fournisseurs.voir';
+
+    public const SUPPLIERS_CREATE = 'fournisseurs.creer';
+
+    public const SUPPLIERS_UPDATE = 'fournisseurs.modifier';
+
+    public const SUPPLIERS_DELETE = 'fournisseurs.supprimer';
+
+    public const PURCHASES_VIEW = 'achats.voir';
+
+    // Créer un achat et enregistrer ses règlements.
+    public const PURCHASES_CREATE = 'achats.creer';
+
     // Reports (Phase 6, tableau de bord) — see app/Modules/Reports/README.md. Read-only
     // aggregates over Sales; the consolidated multi-store variant
     // (rapports.voir_consolide) is business-level and not built yet.
@@ -121,6 +140,13 @@ final class Permissions
             self::CASH_REGISTER_ADJUST,
             self::SALES_VIEW,
             self::SALES_CREATE,
+            self::SALES_CANCEL,
+            self::SUPPLIERS_VIEW,
+            self::SUPPLIERS_CREATE,
+            self::SUPPLIERS_UPDATE,
+            self::SUPPLIERS_DELETE,
+            self::PURCHASES_VIEW,
+            self::PURCHASES_CREATE,
             self::REPORTS_VIEW,
         ];
     }

@@ -20,5 +20,6 @@ Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques
         Route::get('/', [SaleController::class, 'index'])->name('index');
         Route::post('/encaisser', [SaleController::class, 'checkout'])->name('encaisser');
         Route::get('/{sale}', [SaleController::class, 'show'])->name('show');
+        Route::post('/{sale}/annuler', [SaleController::class, 'cancel'])->name('annuler');
     });
 });

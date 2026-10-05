@@ -63,6 +63,15 @@ Annuaire client partagé, référencé par `Sales`, `Appointments` et `Orders`. 
 ### Suppliers
 Annuaire fournisseur, référencé par les entrées de stock (`StockMovement` de type achat) dans `Inventory`.
 
+> **Implémenté (2026-10-06).** Feature `fournisseurs`.
+>
+> - **Fournisseurs** (`fournisseurs`) : CRUD `/api/boutiques/{store}/fournisseurs`, soft delete. La ressource expose `total_achats` et `solde_du` (somme des achats − somme réglée).
+> - **Achats** (`achats`, `lignes_achat`) : `POST /achats` crée une réception de marchandise. `PurchaseService` (seul point d'écriture) entre les quantités en stock (`InventoryService::addStock()`, type `achat`, référence = l'achat), ou **initialise** le stock d'un produit jamais stocké. Il met aussi à jour `produits.prix_achat` avec le coût unitaire, sauf si `mettre_a_jour_prix_achat=false`. Une boutique sans la feature `stock` enregistre l'achat sans mouvement de quantité (même règle que Sales). Pas de PUT/DELETE : historique append-only.
+> - **Règlements** (`paiements_achat`) : à la création (`paiement`) ou ensuite (`POST /achats/{achat}/paiements`), total ou partiel, jamais au-delà du reste dû (`PAIEMENT_INVALIDE`). Mode `caisse` : sortie de la session ouverte de `caisse_id` (`CashRegisterService::recordSupplierPayment()`, mouvement `sortie` référencé, `SOLDE_CAISSE_INSUFFISANT` / `AUCUNE_SESSION_CAISSE_OUVERTE`). Mode `externe` : payé hors caisse. Sans règlement, l'achat est à crédit (`statut_paiement` : `paye` / `partiel` / `non_paye`).
+> - Tout-ou-rien en transaction, verrous dans le même ordre que Sales (Inventory puis CashRegister). Idempotence par `cle_idempotence`.
+> - Permissions : `fournisseurs.{voir,creer,modifier,supprimer}`, `achats.{voir,creer}`. Propriétaire/administrateur/gérant : tout ; caissier : `fournisseurs.voir` seulement. Accordées aux boutiques existantes par migration.
+> - Reste à faire : annulation/retour d'un achat, coût moyen pondéré.
+
 ### Employees
 La fiche employé (nom, poste, planning, rémunération éventuelle) est distincte du `StoreUser` : un employé peut ne jamais se connecter à l'application (ex: personnel de ménage) alors qu'un `StoreUser` est nécessairement un compte applicatif. Un `Employee` peut optionnellement être lié à un `StoreUser` s'il a un accès.
 

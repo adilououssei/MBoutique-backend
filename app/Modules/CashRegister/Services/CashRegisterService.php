@@ -133,6 +133,28 @@ class CashRegisterService
         });
     }
 
+    /**
+     * Cash paid back to the customer when a sale is cancelled — always a
+     * cash-out, on whichever session is open at refund time (not
+     * necessarily the sale's own, which may be closed by then). The
+     * InsufficientCashException guard applies: you can't refund money
+     * the drawer doesn't hold. See docs/sales.md §20.
+     */
+    public function recordRefund(CashRegisterSession $session, string $amount, ?int $userId, Model $reference, ?string $reason = null): CashMovement
+    {
+        return $this->recordMovement($session, CashMovementType::Refund, bcmul($amount, '-1', 2), $userId, $reason, $reference);
+    }
+
+    /**
+     * Cash handed to a supplier for a purchase — a cash-out referencing the
+     * Purchase, so the register's history shows what the money paid for.
+     * Same InsufficientCashException guard as any cash-out. See docs/modules.md §Suppliers.
+     */
+    public function recordSupplierPayment(CashRegisterSession $session, string $amount, ?int $userId, Model $reference, ?string $reason = null): CashMovement
+    {
+        return $this->recordMovement($session, CashMovementType::CashOut, bcmul($amount, '-1', 2), $userId, $reason, $reference);
+    }
+
     private function recordMovement(
         CashRegisterSession $session,
         CashMovementType $type,

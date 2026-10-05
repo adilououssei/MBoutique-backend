@@ -9,6 +9,8 @@ use App\Modules\Catalog\Models\Service;
 use App\Modules\Customers\Models\Customer;
 use App\Modules\Features\Models\BusinessDomain;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Suppliers\Models\Purchase;
+use App\Modules\Suppliers\Models\Supplier;
 use App\Modules\Tenancy\Enums\StoreStatus;
 use Database\Factories\Modules\Tenancy\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -93,6 +95,16 @@ class Store extends Model
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class, 'boutique_id');
+    }
+
+    public function suppliers(): HasMany
+    {
+        return $this->hasMany(Supplier::class, 'boutique_id');
+    }
+
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Purchase::class, 'boutique_id');
     }
 
     public function cashRegisters(): HasMany

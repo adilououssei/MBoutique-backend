@@ -30,6 +30,11 @@ class SaleResource extends JsonResource
             'mode_paiement' => $this->mode_paiement->value,
             'statut' => $this->statut->value,
             'vendue_le' => $this->vendue_le,
+            'annulation' => $this->isCancelled() ? [
+                'le' => $this->annulee_le,
+                'motif' => $this->motif_annulation,
+                'par' => $this->whenLoaded('cancelledBy', fn () => $this->cancelledBy ? ['id' => $this->cancelledBy->id, 'nom' => $this->cancelledBy->nom] : null),
+            ] : null,
         ];
     }
 }

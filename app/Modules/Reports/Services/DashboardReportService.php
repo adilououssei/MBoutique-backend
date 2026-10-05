@@ -161,6 +161,9 @@ class DashboardReportService
     private function topProducts(Store $store, CarbonImmutable $start, CarbonImmutable $end): array
     {
         return $this->lines($store, $start, $end)
+            // Les lignes de service n'ont pas de produit (docs/sales.md §21) :
+            // sans ce filtre elles seraient toutes regroupées sous produit_id NULL.
+            ->whereNotNull('lignes_vente.produit_id')
             ->selectRaw('lignes_vente.produit_id, MAX(lignes_vente.nom_produit) as nom, SUM(lignes_vente.quantite) as quantite, SUM(lignes_vente.montant_total) as total')
             ->groupBy('lignes_vente.produit_id')
             ->orderByDesc('total')

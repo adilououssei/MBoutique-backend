@@ -22,14 +22,19 @@ use InvalidArgumentException;
  */
 class InventoryService
 {
+    /**
+     * @param  Model|null  $reference  the Purchase when a first delivery
+     *                                 initializes the stock — see docs/modules.md §Suppliers
+     */
     public function initializeStock(
         Product $product,
         string $quantity,
         ?string $minimumQuantity,
         ?int $createdByUserId,
         ?string $reason = null,
+        ?Model $reference = null,
     ): StockMovement {
-        return DB::transaction(function () use ($product, $quantity, $minimumQuantity, $createdByUserId, $reason) {
+        return DB::transaction(function () use ($product, $quantity, $minimumQuantity, $createdByUserId, $reason, $reference) {
             if (Stock::query()->where('produit_id', $product->id)->exists()) {
                 throw new StockAlreadyInitializedException("Le stock de \"{$product->nom}\" est déjà initialisé.");
             }
@@ -51,26 +56,31 @@ class InventoryService
                     : $e;
             }
 
-            return $this->applyDelta($stock, $product, StockMovementType::Initial, $quantity, $reason, $createdByUserId);
+            return $this->applyDelta($stock, $product, StockMovementType::Initial, $quantity, $reason, $createdByUserId, $reference);
         });
     }
 
-    /** @param  StockMovementType  $type  one of Purchase, ReturnIn, AdjustmentIn */
+    /**
+     * @param  StockMovementType  $type  one of Purchase, ReturnIn, AdjustmentIn
+     * @param  Model|null  $reference  the cancelled Sale when Sales restocks
+     *                                 its lines (ReturnIn) — see docs/sales.md §20
+     */
     public function addStock(
         Product $product,
         StockMovementType $type,
         string $quantity,
         ?int $createdByUserId,
         ?string $reason = null,
+        ?Model $reference = null,
     ): StockMovement {
         if (! $type->isEntry()) {
             throw new InvalidArgumentException("{$type->value} n'est pas un type de mouvement d'entrée.");
         }
 
-        return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason) {
+        return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason, $reference) {
             $stock = $this->lockExistingStock($product);
 
-            return $this->applyDelta($stock, $product, $type, $quantity, $reason, $createdByUserId);
+            return $this->applyDelta($stock, $product, $type, $quantity, $reason, $createdByUserId, $reference);
         });
     }
 
@@ -99,6 +109,27 @@ class InventoryService
 
             return $this->applyDelta($stock, $product, $type, bcmul($quantity, '-1', 3), $reason, $createdByUserId, $reference);
         });
+    }
+
+    /** Whether the product's stock row exists (i.e. has been initialized). */
+    public function isInitialized(Product $product): bool
+    {
+        return Stock::query()->where('produit_id', $product->id)->exists();
+    }
+
+    /**
+     * Whether $reference (e.g. a Sale) actually removed units of $product —
+     * lets Sales restock on cancellation exactly what the sale took out,
+     * no more, even if the store's `stock` feature changed in between.
+     */
+    public function hasRemovedFor(Product $product, Model $reference): bool
+    {
+        return StockMovement::query()
+            ->where('produit_id', $product->id)
+            ->where('reference_type', $reference->getMorphClass())
+            ->where('reference_id', $reference->getKey())
+            ->where('quantite', '<', 0)
+            ->exists();
     }
 
     /** $countedQuantity is the absolute physical count, not a delta — the delta is computed here. */

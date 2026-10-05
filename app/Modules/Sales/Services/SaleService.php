@@ -8,6 +8,8 @@ use App\Modules\CashRegister\Models\CashRegisterSession;
 use App\Modules\CashRegister\Services\CashRegisterService;
 use App\Modules\Catalog\Enums\PricingMode;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\Service;
+use App\Modules\Features\Services\FeatureGate;
 use App\Modules\Inventory\Enums\StockMovementType;
 use App\Modules\Inventory\Services\InventoryService;
 use App\Modules\Sales\Enums\PaymentMethod;
@@ -15,6 +17,7 @@ use App\Modules\Sales\Enums\SaleStatus;
 use App\Modules\Sales\Exceptions\InvalidDiscountException;
 use App\Modules\Sales\Exceptions\NoOpenCashRegisterSessionException;
 use App\Modules\Sales\Exceptions\PricingModeNotAvailableException;
+use App\Modules\Sales\Exceptions\SaleAlreadyCancelledException;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Sales\Support\Money;
@@ -36,11 +39,12 @@ class SaleService
     public function __construct(
         private readonly InventoryService $inventory,
         private readonly CashRegisterService $cashRegisters,
+        private readonly FeatureGate $features,
     ) {}
 
     /**
      * @param  array{
-     *     lignes: array<int, array{produit_id: int, mode_prix: string, quantite: string|float|int}>,
+     *     lignes: array<int, array{produit_id?: int|null, service_id?: int|null, mode_prix?: string|null, quantite: string|float|int, remise?: string|float|int|null}>,
      *     caisse_id: int,
      *     client_id?: int|null,
      *     mode_paiement?: string,
@@ -59,7 +63,11 @@ class SaleService
             }
         }
 
-        return DB::transaction(function () use ($data, $userId, $idempotencyKey) {
+        // A store without the `stock` feature (salon, atelier, « autre »…)
+        // sells products without tracking quantities — docs/sales.md §23.
+        $tracksStock = $this->features->allows($store, 'stock');
+
+        return DB::transaction(function () use ($data, $userId, $idempotencyKey, $tracksStock) {
             // Re-check under the transaction to close the race between
             // the check above and this one — the (store_id,
             // idempotency_key) unique index is the real guarantee
@@ -91,19 +99,23 @@ class SaleService
             foreach ($lines as $line) {
                 SaleItem::create([
                     'vente_id' => $sale->id,
-                    'produit_id' => $line['product']->id,
-                    'nom_produit' => $line['product']->nom,
+                    'produit_id' => $line['product']?->id,
+                    'service_id' => $line['service']?->id,
+                    'nom_produit' => $line['nom'],
                     'mode_prix' => $line['mode'],
                     'prix_unitaire' => $line['prix_unitaire'],
                     'quantite' => $line['quantite'],
+                    'montant_remise' => $line['montant_remise'],
                     'montant_total' => $line['montant_total'],
                 ]);
 
-                // Sorted by product_id in priceLines() before this loop
-                // runs — a consistent lock order across every checkout,
-                // so two concurrent carts sharing products can never
-                // deadlock on Stock rows. See docs/sales.md §"Verrouillage".
-                $this->inventory->removeStock($line['product'], StockMovementType::Sale, $line['quantite'], $userId, null, $sale);
+                // A service line moves no stock. Product lines are sorted by
+                // product_id in priceLines() — a consistent lock order across
+                // every checkout, so two concurrent carts sharing products can
+                // never deadlock on Stock rows. See docs/sales.md §"Verrouillage".
+                if ($line['product'] !== null && $tracksStock) {
+                    $this->inventory->removeStock($line['product'], StockMovementType::Sale, $line['quantite'], $userId, null, $sale);
+                }
             }
 
             try {
@@ -119,35 +131,124 @@ class SaleService
         });
     }
 
-    /** @return Collection<int, array{product: Product, mode: PricingMode, prix_unitaire: string, quantite: string, montant_total: string}> */
+    /**
+     * Cancels a completed sale as a whole: every product line goes back to
+     * stock (ReturnIn) and the sale total is paid out of an open cash
+     * session (Refund). One transaction — either everything is reversed or
+     * nothing is. The original sale row is kept (status `annulee`), never
+     * deleted: the receipt history stays intact. See docs/sales.md §20.
+     *
+     * @param  array{motif: string, caisse_id?: int|null}  $data
+     */
+    public function cancel(Sale $sale, array $data, ?int $userId): Sale
+    {
+        return DB::transaction(function () use ($sale, $data, $userId) {
+            $sale = Sale::query()->whereKey($sale->id)->lockForUpdate()->firstOrFail();
+
+            if ($sale->isCancelled()) {
+                throw new SaleAlreadyCancelledException("La vente {$sale->reference} est déjà annulée.");
+            }
+
+            // Refund from the requested register, else from the sale's own —
+            // either way it must have an open session right now.
+            $register = CashRegister::query()->findOrFail($data['caisse_id'] ?? $sale->caisse_id);
+            if ($register->session_ouverte_id === null) {
+                throw new NoOpenCashRegisterSessionException(
+                    "La caisse \"{$register->nom}\" n'a pas de session ouverte : ouvrez-la ou choisissez une autre caisse pour rembourser."
+                );
+            }
+            $session = CashRegisterSession::query()->findOrFail($register->session_ouverte_id);
+            $reason = "Annulation de la vente {$sale->reference} : {$data['motif']}";
+
+            // Same lock order as checkout(): Inventory first (products sorted
+            // by id), CashRegister last. withTrashed(): a product deleted
+            // since the sale still gets its units back.
+            $items = $sale->items()->whereNotNull('produit_id')->orderBy('produit_id')->get();
+            $products = Product::withTrashed()->whereIn('id', $items->pluck('produit_id'))->get()->keyBy('id');
+            foreach ($items as $item) {
+                $product = $products[$item->produit_id];
+                // Only what this sale actually took out goes back (nothing
+                // if the store didn't track stock at sale time).
+                if ($this->inventory->hasRemovedFor($product, $sale)) {
+                    $this->inventory->addStock($product, StockMovementType::ReturnIn, (string) $item->quantite, $userId, $reason, $sale);
+                }
+            }
+
+            if (bccomp((string) $sale->montant_total, '0', 2) > 0) {
+                try {
+                    $this->cashRegisters->recordRefund($session, (string) $sale->montant_total, $userId, $sale, $reason);
+                } catch (CashRegisterSessionClosedException $e) {
+                    throw new NoOpenCashRegisterSessionException($e->getMessage(), previous: $e);
+                }
+            }
+
+            $sale->update([
+                'statut' => SaleStatus::Cancelled,
+                'annulee_le' => now(),
+                'annulee_par_id' => $userId,
+                'motif_annulation' => $data['motif'],
+                'session_remboursement_id' => $session->id,
+            ]);
+
+            return $sale;
+        });
+    }
+
+    /**
+     * Prices every line server-side (never trusting a client price) and
+     * applies the per-line discount. Product lines come first, sorted by
+     * product_id (lock order, see checkout()); service lines follow.
+     *
+     * @return Collection<int, array{product: ?Product, service: ?Service, nom: string, mode: ?PricingMode, prix_unitaire: string, quantite: string, montant_remise: string, montant_total: string}>
+     */
     private function priceLines(array $items): Collection
     {
-        $productIds = collect($items)->pluck('produit_id')->unique()->values();
-        $products = Product::query()->whereIn('id', $productIds)->get()->keyBy('id');
+        $items = collect($items);
+        $products = Product::query()->whereIn('id', $items->pluck('produit_id')->filter()->unique())->get()->keyBy('id');
+        $services = Service::query()->whereIn('id', $items->pluck('service_id')->filter()->unique())->get()->keyBy('id');
 
-        return collect($items)
-            ->sortBy('produit_id') // see the lock-ordering note in checkout()
+        return $items
+            ->sortBy(fn (array $item) => filled($item['produit_id'] ?? null) ? [0, (int) $item['produit_id']] : [1, (int) $item['service_id']])
             ->values()
-            ->map(function (array $item) use ($products) {
-                /** @var Product $product */
-                $product = $products->get($item['produit_id']) ?? throw new InvalidArgumentException("Produit #{$item['produit_id']} introuvable.");
-                $mode = PricingMode::from($item['mode_prix']);
+            ->map(function (array $item) use ($products, $services) {
+                $product = null;
+                $service = null;
+                $mode = null;
 
-                try {
-                    $unitPrice = $product->priceFor($mode);
-                } catch (InvalidArgumentException) {
-                    throw PricingModeNotAvailableException::forProduct($product, $mode);
+                if (filled($item['produit_id'] ?? null)) {
+                    /** @var Product $product */
+                    $product = $products->get($item['produit_id']) ?? throw new InvalidArgumentException("Produit #{$item['produit_id']} introuvable.");
+                    $mode = PricingMode::from($item['mode_prix']);
+
+                    try {
+                        $unitPrice = $product->priceFor($mode);
+                    } catch (InvalidArgumentException) {
+                        throw PricingModeNotAvailableException::forProduct($product, $mode);
+                    }
+                } else {
+                    /** @var Service $service */
+                    $service = $services->get($item['service_id']) ?? throw new InvalidArgumentException("Service #{$item['service_id']} introuvable.");
+                    $unitPrice = Money::round((string) $service->prix);
                 }
 
                 $quantity = (string) $item['quantite'];
-                $lineTotal = Money::round(bcmul($unitPrice, $quantity, 6));
+                $gross = Money::round(bcmul($unitPrice, $quantity, 6));
+                $lineDiscount = Money::round((string) ($item['remise'] ?? '0'));
+                $name = $product?->nom ?? $service->nom;
+
+                if (bccomp($lineDiscount, $gross, 2) > 0) {
+                    throw new InvalidDiscountException("La remise sur \"{$name}\" dépasse le montant de la ligne.");
+                }
 
                 return [
                     'product' => $product,
+                    'service' => $service,
+                    'nom' => $name,
                     'mode' => $mode,
                     'prix_unitaire' => $unitPrice,
                     'quantite' => $quantity,
-                    'montant_total' => $lineTotal,
+                    'montant_remise' => $lineDiscount,
+                    'montant_total' => bcsub($gross, $lineDiscount, 2),
                 ];
             });
     }

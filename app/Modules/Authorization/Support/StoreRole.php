@@ -96,16 +96,21 @@ final class StoreRole
             Permissions::SALES_VIEW,
         ];
 
+        $suppliersFullAccess = [
+            Permissions::SUPPLIERS_VIEW, Permissions::SUPPLIERS_CREATE, Permissions::SUPPLIERS_UPDATE, Permissions::SUPPLIERS_DELETE,
+            Permissions::PURCHASES_VIEW, Permissions::PURCHASES_CREATE,
+        ];
+
         return [
-            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::REPORTS_VIEW],
-            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::REPORTS_VIEW],
-            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::REPORTS_VIEW],
+            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, ...$suppliersFullAccess, Permissions::REPORTS_VIEW],
+            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, ...$suppliersFullAccess, Permissions::REPORTS_VIEW],
+            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, ...$suppliersFullAccess, Permissions::REPORTS_VIEW],
             // Cashier: read-only everywhere else, but operates the
             // register fully (opens/closes their own shift, cash in/out)
             // and processes sales — "Caissier : ventes.creer, ventes.voir,
             // caisse.*, ..." (docs/permissions.md §3, confirmed
             // literally for sales, unlike caisse.gerer — see above).
-            self::CASHIER => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterCashierAccess, ...$salesFullAccess],
+            self::CASHIER => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterCashierAccess, ...$salesFullAccess, Permissions::SUPPLIERS_VIEW],
             self::EMPLOYEE => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterReadOnly, ...$salesReadOnly],
         ];
     }

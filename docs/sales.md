@@ -170,8 +170,38 @@ Toutes en `422`, jamais une `500`.
 ## 19. Ce qui est volontairement laissé de côté
 
 - Paiement Mobile Money, carte, PayPlus, Stripe, paiement mixte réel — `PaymentMethod` prépare l'enum, seul `especes` est accepté par le Checkout.
-- Annulation/remboursement — aucune logique de reversal stock/caisse dans cette phase.
-- Vente de `Service` — hors périmètre (voir la note de révision en tête de ce document).
+- ~~Annulation/remboursement~~ — livré, voir §20 (annulation totale ; le retour partiel reste à faire).
+- ~~Vente de `Service`~~ — livré, voir §21.
 - Cart persistant côté backend — décision explicite, voir §3.
-- Remises par ligne, coupons, promotions — seule une remise globale existe.
-- Génération PDF/impression — `SaleResource` fournit les données, pas le rendu.
+- ~~Remises par ligne~~ — livré, voir §22. Coupons et promotions restent hors périmètre.
+- Génération PDF/impression — faite côté application mobile (ticket partagé en texte ou en PDF) à partir de `SaleResource`.
+
+## 20. Annulation d'une vente (2026-10-05)
+
+- `POST /api/boutiques/{store}/ventes/{sale}/annuler` — corps : `motif` (obligatoire, 500 car. max), `caisse_id` (facultatif).
+- **Annulation totale** : chaque ligne produit est remise en stock (`InventoryService::addStock()`, type `retour`, référence = la vente) et le total est sorti d'une session de caisse ouverte (`CashRegisterService::recordRefund()`, type `remboursement`). Une seule transaction : tout ou rien.
+- Le remboursement sort de la caisse `caisse_id` si fournie, sinon de la caisse de la vente ; elle doit avoir une session **ouverte** au moment de l'annulation (pas forcément celle de la vente, qui peut être fermée).
+- La vente n'est jamais supprimée : `statut = annulee`, `annulee_le`, `annulee_par_id`, `motif_annulation`, `session_remboursement_id`. `SaleResource.annulation` expose `{le, motif, par}`.
+- Ordre des verrous identique au Checkout : Inventory (produits triés par id) puis CashRegister.
+- Permission `ventes.annuler` : propriétaire, administrateur, gérant — **pas** le caissier. Accordée aux rôles des boutiques existantes par migration (même mécanisme que `rapports.voir`).
+- Erreurs : `VENTE_DEJA_ANNULEE`, `AUCUNE_SESSION_CAISSE_OUVERTE`, `SOLDE_CAISSE_INSUFFISANT` (422).
+- Les rapports ne comptent que les ventes `terminee` : une vente annulée en sort automatiquement.
+- Reste à faire : retour **partiel** (rendre une partie des articles).
+
+## 21. Vente de services
+
+- Une ligne de `lignes` porte `produit_id` (+ `mode_prix`) **ou** `service_id`, jamais les deux (règle dans `CreateSaleCheckoutRequest::withValidator()`).
+- Prix d'une ligne de service = `services.prix`, recalculé serveur. Aucun mouvement de stock.
+- `lignes_vente.produit_id` et `mode_prix` deviennent nullables, `service_id` ajouté. `nom_produit` reste le libellé figé de la ligne (produit ou service) — nom de colonne historique.
+- `SaleItemResource` expose `type` (`produit`|`service`) et `service_id`.
+- Rapports : « meilleurs produits » ignore les lignes de service.
+
+## 22. Remise par ligne
+
+- `lignes.*.remise` : montant (pas un pourcentage), stocké dans `lignes_vente.montant_remise`. `montant_total` de la ligne = brut − remise.
+- Une remise de ligne supérieure au brut de la ligne → `REMISE_INVALIDE`. La remise globale (`montant_remise`) s'applique ensuite sur le sous-total des lignes nettes.
+
+## 23. Produit sans stock initialisé
+
+- Vendre un produit dont le stock n'a jamais été initialisé renvoie désormais `422 STOCK_NON_INITIALISE` (auparavant une 500 non gérée).
+

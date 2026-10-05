@@ -22,4 +22,9 @@ class SalePolicy
     {
         return $user->can('ventes.creer');
     }
+
+    public function cancel(User $user, Sale $sale, Store $store): bool
+    {
+        return $sale->boutique_id === $store->id && $user->can('ventes.annuler');
+    }
 }
