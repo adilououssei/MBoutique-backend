@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Admin\Providers\AdminServiceProvider;
 use App\Modules\Appointments\Providers\AppointmentsServiceProvider;
 use App\Modules\CashRegister\Providers\CashRegisterServiceProvider;
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
@@ -32,4 +33,5 @@ return [
     OrdersServiceProvider::class,
     NotificationsServiceProvider::class,
     ReportsServiceProvider::class,
+    AdminServiceProvider::class,
 ];

@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Admin\Http\Middleware\EnsurePlatformAdmin;
 use App\Modules\Features\Http\Middleware\EnsureFeatureEnabled;
 use App\Modules\Subscriptions\Exceptions\SubscriptionLimitExceededException;
 use App\Modules\Tenancy\Http\Middleware\ResolveStoreContext;
@@ -30,7 +31,12 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        // Interface d'administration (web) : la page de connexion est la racine.
+        $middleware->redirectGuestsTo('/');
+        $middleware->redirectUsersTo('/admin');
+
         $middleware->alias([
+            'admin.plateforme' => EnsurePlatformAdmin::class,
             'store' => ResolveStoreContext::class,
             'permission' => PermissionMiddleware::class,
             'role' => RoleMiddleware::class,

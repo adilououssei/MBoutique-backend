@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A subscription tier. `features()` is an allow-list: if a plan has ZERO
@@ -44,5 +45,10 @@ class Plan extends Model
     public function features(): BelongsToMany
     {
         return $this->belongsToMany(Feature::class, 'fonctionnalites_forfait', 'forfait_id', 'fonctionnalite_id');
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class, 'forfait_id');
     }
 }

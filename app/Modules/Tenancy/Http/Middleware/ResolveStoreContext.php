@@ -2,9 +2,12 @@
 
 namespace App\Modules\Tenancy\Http\Middleware;
 
+use App\Modules\Tenancy\Enums\BusinessStatus;
+use App\Modules\Tenancy\Enums\StoreStatus;
 use App\Modules\Tenancy\Enums\StoreUserStatus;
 use App\Modules\Tenancy\Models\Store;
 use App\Modules\Tenancy\Models\StoreUser;
+use App\Shared\Http\Responses\ApiResponse;
 use App\Shared\Tenancy\Contracts\TenantContextContract;
 use Closure;
 use Illuminate\Http\Request;
@@ -42,6 +45,17 @@ class ResolveStoreContext
             ->exists();
 
         abort_if(! $isActiveMember, 404);
+
+        // Boutique désactivée ou entreprise suspendue par l'administration de
+        // la plateforme : l'accès est coupé, avec un message explicite.
+        if ($store->statut !== StoreStatus::Active || $store->business?->statut === BusinessStatus::Suspended) {
+            return ApiResponse::error(
+                'Cette boutique est suspendue. Contactez le support MBoutique.',
+                [],
+                403,
+                'BOUTIQUE_SUSPENDUE',
+            );
+        }
 
         $request->route()->setParameter('store', $store);
 

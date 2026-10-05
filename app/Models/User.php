@@ -57,6 +57,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'statut' => UserStatus::class,
+            'est_admin_plateforme' => 'boolean',
         ];
     }
 
@@ -73,5 +74,11 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return $this->statut === UserStatus::Active;
+    }
+
+    /** Équipe MBoutique (interface d'administration) — docs/permissions.md §6. */
+    public function isPlatformAdmin(): bool
+    {
+        return (bool) $this->est_admin_plateforme;
     }
 }
