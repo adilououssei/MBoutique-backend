@@ -92,7 +92,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .nav a .ion { font-size: 19px; }
 .nav a:hover { background: rgba(255,255,255,.06); color: var(--white); }
-.nav a.active { background: var(--primary); color: var(--white); box-shadow: 0 6px 16px rgba(254,95,23,.35); }
+.nav a.active { background: var(--primary); color: var(--white); }
 
 .me {
   display: flex; align-items: center; gap: 10px;
@@ -165,10 +165,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: var(--r-xl); padding: 26px;
   display: flex; flex-direction: column; justify-content: center; gap: 12px;
   position: relative; overflow: hidden;
-}
-.hero::after {
-  content: ''; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(254,95,23,.35), transparent 70%);
 }
 .hero-label { color: rgba(255,255,255,.7); font-weight: 600; font-size: 13px; }
 .hero-value { font-size: 38px; font-weight: 800; letter-spacing: -.5px; }
@@ -281,7 +277,7 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; resize: ver
 /* Graphique en barres */
 .bars { display: flex; align-items: flex-end; gap: 14px; height: 190px; padding-top: 10px; }
 .bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
-.bar-col { width: 100%; max-width: 46px; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, var(--primary), var(--primary-deep)); min-height: 4px; position: relative; }
+.bar-col { width: 100%; max-width: 46px; border-radius: 10px 10px 4px 4px; background: var(--primary); min-height: 4px; position: relative; }
 .bar-col.zero { background: var(--border); }
 .bar-val { font-size: 12px; font-weight: 800; }
 .bar-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; }
@@ -319,10 +315,6 @@ textarea.input { height: auto; min-height: 90px; padding: 12px 14px; resize: ver
 .auth-side {
   background: var(--dark); color: var(--white); padding: 48px 56px;
   display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;
-}
-.auth-side::before {
-  content: ''; position: absolute; width: 520px; height: 520px; right: -180px; bottom: -160px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(254,95,23,.35), transparent 65%);
 }
 .auth-side::after {
   content: ''; position: absolute; width: 300px; height: 300px; left: -120px; top: -110px; border-radius: 50%;
