@@ -21,6 +21,7 @@ Réponse (`donnees`) :
 | `courbe` | `granularite` (`heure` : 24 points pour `aujourdhui`, `jour` sinon) et `points[]` (`cle`, `libelle`, `chiffre_affaires`, `nombre_ventes`) |
 | `meilleurs_produits` | 5 produits au plus grand chiffre d'affaires |
 | `modes_paiement` | montant et nombre de ventes par mode |
+| `credits` | si la boutique a la fonctionnalité `clients` (sinon `null`) : `ventes_credit` et `nombre_ventes_credit` (ventes terminées de la période, total − acompte), `encaisse` (remboursements reçus sur la période), `creances_en_cours` et `clients_debiteurs` (soldes positifs aujourd'hui, toutes périodes) |
 
 ### Périodes
 

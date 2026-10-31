@@ -27,6 +27,8 @@ class StoreFeatureController extends ApiController
             'domaine' => [
                 'slug' => $store->businessDomain->slug,
                 'nom' => $store->businessDomain->nom,
+                // Exemples et unité par défaut du métier, pour les textes de l'application.
+                'vocabulaire' => (object) ($store->businessDomain->vocabulaire ?? []),
             ],
             'fonctionnalites' => $resolved->map(fn (bool $enabled, string $slug) => [
                 'slug' => $slug,

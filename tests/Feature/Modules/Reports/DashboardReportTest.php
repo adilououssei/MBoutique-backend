@@ -6,12 +6,15 @@ use App\Models\User;
 use App\Modules\CashRegister\Models\CashRegister;
 use App\Modules\CashRegister\Models\CashRegisterSession;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Models\CustomerAccountEntry;
 use App\Modules\Sales\Enums\SaleStatus;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\SaleItem;
 use App\Modules\Tenancy\Models\Store;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesStoresWithFeatures;
 use Tests\TestCase;
@@ -282,5 +285,41 @@ class DashboardReportTest extends TestCase
         ['store' => $store] = $this->reportingStore();
 
         $this->dashboard($store, 'annee')->assertStatus(422)->assertJsonPath('code', 'VALIDATION_ECHOUEE');
+    }
+
+    public function test_credit_sales_and_receivables_are_summarised(): void
+    {
+        ['store' => $store] = $this->reportingStore(['produits', 'ventes', 'caisse', 'clients', 'rapports']);
+        $product = Product::factory()->for($store)->create();
+        $awa = Customer::factory()->for($store)->create();
+        $ali = Customer::factory()->for($store)->create();
+
+        // Aujourd'hui : 5000 dont 1000 d'acompte (4000 à crédit), une vente payée, une à crédit annulée.
+        $this->recordSale($store, '2026-10-04 09:00:00', [[$product, 1, 5000]], ['client_id' => $awa->id, 'montant_acompte' => 1000]);
+        $this->recordSale($store, '2026-10-04 10:00:00', [[$product, 1, 800]]);
+        $this->recordSale($store, '2026-10-04 11:00:00', [[$product, 1, 9000]], ['client_id' => $ali->id, 'montant_acompte' => 0, 'statut' => SaleStatus::Cancelled]);
+
+        $entry = fn (Customer $c, string $type, int $amount, string $at) => DB::table('mouvements_compte_client')->insert([
+            'boutique_id' => $store->id, 'client_id' => $c->id, 'type' => $type, 'montant' => $amount,
+            'created_at' => $at, 'updated_at' => $at,
+        ]);
+        $entry($ali, CustomerAccountEntry::CREDIT_SALE, 3000, '2026-10-01 09:00:00');
+        $entry($ali, CustomerAccountEntry::PAYMENT, -1000, '2026-10-04 12:00:00');
+        $entry($awa, CustomerAccountEntry::CREDIT_SALE, 4000, '2026-10-04 09:00:00');
+
+        $this->dashboard($store)
+            ->assertOk()
+            ->assertJsonPath('donnees.credits.ventes_credit', '4000.00')
+            ->assertJsonPath('donnees.credits.nombre_ventes_credit', 1)
+            ->assertJsonPath('donnees.credits.encaisse', '1000.00')
+            ->assertJsonPath('donnees.credits.creances_en_cours', '6000.00')
+            ->assertJsonPath('donnees.credits.clients_debiteurs', 2);
+    }
+
+    public function test_credits_are_absent_without_customers(): void
+    {
+        ['store' => $store] = $this->reportingStore();
+
+        $this->dashboard($store)->assertOk()->assertJsonPath('donnees.credits', null);
     }
 }

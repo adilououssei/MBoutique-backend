@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     Route::post('inscription', [RegisteredUserController::class, 'store']);
+    Route::get('pays', [CurrentUserController::class, 'countries']);
     Route::post('connexion', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:login');
     Route::post('mot-de-passe-oublie', [PasswordResetLinkController::class, 'store'])->middleware('throttle:6,1');
     Route::post('reinitialiser-mot-de-passe', [NewPasswordController::class, 'store'])->middleware('throttle:6,1');
@@ -17,6 +18,7 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('deconnexion', [AuthenticatedSessionController::class, 'destroy']);
         Route::get('moi', [CurrentUserController::class, 'show']);
+        Route::put('moi/pays', [CurrentUserController::class, 'updateCountry']);
         Route::put('mot-de-passe', [PasswordController::class, 'update']);
     });
 });

@@ -3,19 +3,34 @@
 namespace App\Modules\Tenancy\Models;
 
 use App\Modules\Appointments\Models\Appointment;
+use App\Modules\Appointments\Models\Package;
 use App\Modules\CashRegister\Models\CashRegister;
 use App\Modules\Catalog\Models\Category;
+use App\Modules\Catalog\Models\Collection;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\Service;
+use App\Modules\Conservation\Models\StockLot;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Customers\Models\Prescription;
+use App\Modules\Devices\Models\Device;
 use App\Modules\Employees\Models\Employee;
+use App\Modules\Equipment\Models\Equipment;
+use App\Modules\Expenses\Models\Expense;
 use App\Modules\Features\Models\BusinessDomain;
 use App\Modules\Orders\Models\DiningTable;
 use App\Modules\Orders\Models\Order;
+use App\Modules\Orders\Models\Reservation;
+use App\Modules\Repairs\Models\Quote;
+use App\Modules\Repairs\Models\Repair;
+use App\Modules\Returns\Models\SaleReturn;
+use App\Modules\Sales\Models\Promotion;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Suppliers\Models\Purchase;
 use App\Modules\Suppliers\Models\Supplier;
 use App\Modules\Tenancy\Enums\StoreStatus;
+use App\Modules\Transformations\Models\PreparationSheet;
+use App\Modules\Transformations\Models\Transformation;
+use App\Modules\Warranties\Models\Warranty;
 use Database\Factories\Modules\Tenancy\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -111,6 +126,11 @@ class Store extends Model
         return $this->hasMany(DiningTable::class, 'boutique_id');
     }
 
+    public function packages(): HasMany
+    {
+        return $this->hasMany(Package::class, 'boutique_id');
+    }
+
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class, 'boutique_id');
@@ -139,5 +159,75 @@ class Store extends Model
     public function sales(): HasMany
     {
         return $this->hasMany(Sale::class, 'boutique_id');
+    }
+
+    public function transformations(): HasMany
+    {
+        return $this->hasMany(Transformation::class, 'boutique_id');
+    }
+
+    public function preparationSheets(): HasMany
+    {
+        return $this->hasMany(PreparationSheet::class, 'boutique_id');
+    }
+
+    public function stockLots(): HasMany
+    {
+        return $this->hasMany(StockLot::class, 'boutique_id');
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class, 'boutique_id');
+    }
+
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class, 'boutique_id');
+    }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class, 'boutique_id');
+    }
+
+    public function warranties(): HasMany
+    {
+        return $this->hasMany(Warranty::class, 'boutique_id');
+    }
+
+    public function repairs(): HasMany
+    {
+        return $this->hasMany(Repair::class, 'boutique_id');
+    }
+
+    public function saleReturns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class, 'boutique_id');
+    }
+
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class, 'boutique_id');
+    }
+
+    public function promotions(): HasMany
+    {
+        return $this->hasMany(Promotion::class, 'boutique_id');
+    }
+
+    public function collections(): HasMany
+    {
+        return $this->hasMany(Collection::class, 'boutique_id');
+    }
+
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class, 'boutique_id');
+    }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class, 'boutique_id');
     }
 }

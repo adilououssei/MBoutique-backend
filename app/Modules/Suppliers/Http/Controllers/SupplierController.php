@@ -67,7 +67,7 @@ class SupplierController extends ApiController
     private function withTotals(Builder $query): Builder
     {
         return $query
-            ->withSum('purchases as total_achats', 'montant_total')
-            ->withSum('purchases as total_paye', 'montant_paye');
+            ->withSum(['purchases as total_achats' => fn ($q) => $q->where('statut', '!=', 'commande')], 'montant_total')
+            ->withSum(['purchases as total_paye' => fn ($q) => $q->where('statut', '!=', 'commande')], 'montant_paye');
     }
 }

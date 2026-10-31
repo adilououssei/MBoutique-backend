@@ -6,6 +6,8 @@ enum OrderStatus: string
 {
     case Waiting = 'en_attente';
     case Preparing = 'en_preparation';
+    /** Pressing : traité, en attente de contrôle qualité. */
+    case Control = 'controle';
     case Ready = 'prete';
     /** Servie (restaurant) ou remise au client (atelier, pressing). */
     case Served = 'servie';
@@ -21,6 +23,6 @@ enum OrderStatus: string
     /** @return list<string> */
     public static function openValues(): array
     {
-        return [self::Waiting->value, self::Preparing->value, self::Ready->value, self::Served->value];
+        return [self::Waiting->value, self::Preparing->value, self::Control->value, self::Ready->value, self::Served->value];
     }
 }

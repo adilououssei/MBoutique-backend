@@ -19,6 +19,7 @@ class CategoryController extends ApiController
         $categories = Category::query()
             ->when($request->filled('recherche'), fn ($q) => $q->where('nom', 'like', '%'.$request->string('recherche').'%'))
             ->when($request->has('actif'), fn ($q) => $q->where('actif', $request->boolean('actif')))
+            ->when($request->filled('parent_id'), fn ($q) => $q->where('parent_id', $request->integer('parent_id')))
             ->orderBy('nom')
             ->paginate(min((int) $request->integer('par_page', 20), 100));
 

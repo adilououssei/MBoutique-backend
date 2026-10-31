@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Reports\Http\Controllers\DashboardReportController;
+use App\Modules\Reports\Http\Controllers\ManagementReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,5 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', 'store'])->prefix('boutiques/{store}')->group(function () {
     Route::middleware(['feature:rapports', 'permission:rapports.voir'])->prefix('rapports')->name('rapports.')->group(function () {
         Route::get('/tableau-de-bord', [DashboardReportController::class, 'show'])->name('tableau-de-bord');
+        // Rapport de gestion (boucherie) : feature distincte, le tableau de bord reste inchangé ailleurs.
+        Route::get('/gestion', [ManagementReportController::class, 'show'])->middleware('feature:rapports_gestion')->name('gestion');
     });
 });

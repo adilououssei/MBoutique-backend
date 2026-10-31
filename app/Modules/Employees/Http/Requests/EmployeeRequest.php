@@ -26,6 +26,8 @@ class EmployeeRequest extends FormRequest
             'adresse' => ['nullable', 'string', 'max:255'],
             'date_embauche' => ['nullable', 'date'],
             'salaire' => ['nullable', 'numeric', 'min:0'],
+            'specialites' => ['nullable', 'string', 'max:500'],
+            'taux_commission' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'periodicite_salaire' => ['nullable', 'required_with:salaire', Rule::enum(SalaryPeriod::class)],
             'notes' => ['nullable', 'string'],
             'actif' => ['sometimes', 'boolean'],

@@ -24,6 +24,17 @@ class StoreAlert extends Notification
 
     public const APPOINTMENT_REMINDER = 'rappel_rendez_vous';
 
+    // Lot proche de sa date limite ou périmé (module Conservation).
+    public const EXPIRY = 'peremption';
+
+    // Entretien d'équipement à faire (module Equipment).
+    public const MAINTENANCE = 'entretien';
+
+    // Pressing : dépôt bientôt dû ou en retard.
+    public const DROP_OFF_DUE = 'depot_bientot_du';
+
+    public const DROP_OFF_LATE = 'depot_en_retard';
+
     /**
      * @param  array{ecran: string, id: int|string}|null  $link  écran de l'application à ouvrir
      * @param  array<string, mixed>  $extra  données de déduplication (ex. rendez_vous_id)

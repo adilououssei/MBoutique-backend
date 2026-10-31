@@ -17,7 +17,7 @@ class ChangeAppointmentStatusRequest extends FormRequest
     {
         return [
             // L'annulation a sa propre route (permission distincte).
-            'statut' => ['required', Rule::in(['confirme', 'termine', 'absent'])],
+            'statut' => ['required', Rule::in(['confirme', 'en_cours', 'termine', 'absent'])],
             'vente_id' => ['nullable', 'integer', 'prohibited_unless:statut,termine', TenantScopedRules::existsInCurrentStore('ventes')],
         ];
     }

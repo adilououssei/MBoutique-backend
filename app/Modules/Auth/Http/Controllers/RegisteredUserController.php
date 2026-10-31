@@ -12,7 +12,7 @@ class RegisteredUserController extends ApiController
     public function store(RegisterUserRequest $request)
     {
         $user = User::create([
-            ...$request->safe()->only(['nom', 'email', 'telephone']),
+            ...$request->safe()->only(['nom', 'email', 'telephone', 'pays']),
             'password' => $request->validated('mot_de_passe'),
         ]);
 

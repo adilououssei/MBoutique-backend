@@ -21,6 +21,8 @@ class UpdateCategoryRequest extends FormRequest
                 TenantScopedRules::uniqueInCurrentStore('categories', 'slug')->ignore($this->route('category')),
             ],
             'description' => ['nullable', 'string'],
+            // Sous-catégorie : rattachée à une catégorie de la boutique.
+            'parent_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('categories')->whereNull('deleted_at')],
             'actif' => ['sometimes', 'boolean'],
         ];
     }

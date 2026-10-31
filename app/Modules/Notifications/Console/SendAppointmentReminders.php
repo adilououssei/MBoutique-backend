@@ -31,7 +31,7 @@ class SendAppointmentReminders extends Command
 
         // Hors requête HTTP : aucune boutique active, la portée « boutique » ne filtre pas.
         $appointments = Appointment::query()
-            ->whereIn('statut', [AppointmentStatus::Planned->value, AppointmentStatus::Confirmed->value])
+            ->whereIn('statut', [AppointmentStatus::Pending->value, AppointmentStatus::Planned->value, AppointmentStatus::Confirmed->value])
             ->whereBetween('debut_le', [$from, $to])
             ->with(['employee.user', 'service', 'customer'])
             ->get();

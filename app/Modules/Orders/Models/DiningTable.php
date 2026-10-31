@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Table de la salle d'un restaurant. Libre/occupée est dérivé de openOrder(). */
-#[Fillable(['nom', 'capacite', 'actif'])]
+#[Fillable(['nom', 'espace', 'capacite', 'actif', 'a_nettoyer'])]
 #[Table('tables_salle')]
 class DiningTable extends Model
 {
@@ -23,6 +23,7 @@ class DiningTable extends Model
         return [
             'capacite' => 'integer',
             'actif' => 'boolean',
+            'a_nettoyer' => 'boolean',
         ];
     }
 

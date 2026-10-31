@@ -16,4 +16,8 @@ enum ProductUnit: string
     case Ml = 'ml';
     case Box = 'boite';
     case Pack = 'paquet';
+    // Matériaux d'atelier (tissu, câble, tôle, rouleau de papier…).
+    case Metre = 'metre';
+    case SquareMetre = 'm2';
+    case Roll = 'rouleau';
 }

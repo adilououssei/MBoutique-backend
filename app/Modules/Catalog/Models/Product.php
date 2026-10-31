@@ -3,7 +3,11 @@
 namespace App\Modules\Catalog\Models;
 
 use App\Modules\Catalog\Enums\PricingMode;
+use App\Modules\Catalog\Enums\ProductCondition;
+use App\Modules\Catalog\Enums\ProductConservation;
+use App\Modules\Catalog\Enums\ProductKind;
 use App\Modules\Catalog\Enums\ProductUnit;
+use App\Modules\Suppliers\Models\Supplier;
 use App\Modules\Tenancy\Models\Store;
 use App\Shared\Contracts\Sellable;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
@@ -13,6 +17,8 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use InvalidArgumentException;
 
@@ -21,7 +27,7 @@ use InvalidArgumentException;
  * (no inventory/stock fields here — that's Inventory, a later phase) and
  * for the Sellable contract this implements.
  */
-#[Fillable(['categorie_id', 'nom', 'slug', 'description', 'sku', 'code_barres', 'unite', 'prix_achat', 'vente_detail_active', 'prix_detail', 'vente_gros_active', 'prix_gros', 'actif'])]
+#[Fillable(['categorie_id', 'fournisseur_id', 'nom', 'marque', 'modele', 'etat', 'caracteristiques', 'suivi_unitaire', 'garantie_mois', 'conditions_garantie', 'slug', 'description', 'sku', 'code_barres', 'unite', 'quantites_vente', 'type_article', 'temps_preparation_minutes', 'disponible', 'dci', 'forme', 'dosage', 'presentation', 'laboratoire', 'sur_ordonnance', 'unites_par_boite', 'produit_parent_id', 'taille', 'couleur', 'public_cible', 'collection_id', 'conservation', 'duree_conservation_jours', 'prix_achat', 'vente_detail_active', 'prix_detail', 'vente_gros_active', 'prix_gros', 'actif'])]
 #[Table('produits')]
 class Product extends Model implements Sellable
 {
@@ -52,6 +58,12 @@ class Product extends Model implements Sellable
             if (! $product->vente_gros_active) {
                 $product->prix_gros = null;
             }
+            // Quantités proposées à la pesée : triées, au gramme près ; liste vide = aucune.
+            if ($product->isDirty('quantites_vente') && $product->quantites_vente !== null) {
+                $quantities = array_values(array_unique(array_map(fn ($q) => round((float) $q, 3), $product->quantites_vente)));
+                sort($quantities);
+                $product->quantites_vente = $quantities === [] ? null : $quantities;
+            }
         });
     }
 
@@ -59,6 +71,17 @@ class Product extends Model implements Sellable
     {
         return [
             'unite' => ProductUnit::class,
+            'conservation' => ProductConservation::class,
+            'etat' => ProductCondition::class,
+            'suivi_unitaire' => 'boolean',
+            'type_article' => ProductKind::class,
+            'temps_preparation_minutes' => 'integer',
+            'disponible' => 'boolean',
+            'sur_ordonnance' => 'boolean',
+            'unites_par_boite' => 'integer',
+            'quantites_vente' => 'array',
+            'garantie_mois' => 'integer',
+            'duree_conservation_jours' => 'integer',
             'prix_achat' => 'decimal:2',
             'vente_detail_active' => 'boolean',
             'prix_detail' => 'decimal:2',
@@ -68,9 +91,58 @@ class Product extends Model implements Sellable
         ];
     }
 
+    /**
+     * Quantité de stock pour une quantité vendue : une vente « gros » d'un
+     * produit conditionné (unités par boîte) sort N unités par boîte.
+     */
+    public function stockQuantityFor(?PricingMode $mode, string $quantity): string
+    {
+        if ($mode === PricingMode::Wholesale && ($this->unites_par_boite ?? 0) > 1) {
+            return bcmul($quantity, (string) $this->unites_par_boite, 3);
+        }
+
+        return $quantity;
+    }
+
+    /** Article parent d'une variante (taille / couleur). */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'produit_parent_id')->withTrashed();
+    }
+
+    /** Variantes d'un article : chacune a son stock, son prix, son code-barres. */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(self::class, 'produit_parent_id');
+    }
+
+    public function collection(): BelongsTo
+    {
+        return $this->belongsTo(Collection::class, 'collection_id');
+    }
+
+    /** Suppléments payants proposés avec cet article (eux-mêmes des produits). */
+    public function supplements(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'supplements_produit', 'produit_id', 'supplement_id')->withTimestamps();
+    }
+
+    /** @param  array<int, int>  $supplementIds */
+    public function syncSupplements(array $supplementIds): void
+    {
+        $this->supplements()->sync(collect($supplementIds)->reject(fn (int $id) => $id === $this->id)
+            ->mapWithKeys(fn (int $id) => [$id => ['boutique_id' => $this->boutique_id]])->all());
+    }
+
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class, 'boutique_id');
+    }
+
+    /** Fournisseur habituel (fiche technique), facultatif. */
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'fournisseur_id')->withTrashed();
     }
 
     public function category(): BelongsTo

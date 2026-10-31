@@ -5,6 +5,9 @@ namespace App\Modules\Sales\Models;
 use App\Modules\Catalog\Enums\PricingMode;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\Service;
+use App\Modules\Devices\Models\Device;
+use App\Modules\Returns\Models\SaleReturnLine;
+use App\Modules\Warranties\Models\Warranty;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\Sales\SaleItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,6 +15,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A snapshot line, not a live reference — `product_name`/`unit_price`
@@ -21,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * (pricing_mode/détail-gros are Product-specific concepts, see
  * docs/sales.md §"Écart d'architecture").
  */
-#[Fillable(['vente_id', 'produit_id', 'service_id', 'nom_produit', 'mode_prix', 'prix_unitaire', 'quantite', 'montant_remise', 'montant_total'])]
+#[Fillable(['vente_id', 'produit_id', 'service_id', 'employe_id', 'forfait_id', 'nom_produit', 'mode_prix', 'prix_unitaire', 'quantite', 'montant_remise', 'promotion_id', 'montant_total'])]
 #[Table('lignes_vente')]
 class SaleItem extends Model
 {
@@ -59,6 +63,24 @@ class SaleItem extends Model
     }
 
     /** Une ligne porte soit un produit (stock suivi), soit un service. */
+    /** Appareils (IMEI / n° de série) vendus sur cette ligne. */
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class, 'ligne_vente_id');
+    }
+
+    /** Garanties créées pour cette ligne (module Warranties). */
+    public function warranties(): HasMany
+    {
+        return $this->hasMany(Warranty::class, 'ligne_vente_id');
+    }
+
+    /** Lignes de retour (module Returns). */
+    public function returnLines(): HasMany
+    {
+        return $this->hasMany(SaleReturnLine::class, 'ligne_vente_id');
+    }
+
     public function isService(): bool
     {
         return $this->service_id !== null;

@@ -24,6 +24,7 @@ Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques
         Route::post('/', [CashRegisterController::class, 'store'])->name('store');
         Route::get('/{cashRegister}', [CashRegisterController::class, 'show'])->name('show');
         Route::put('/{cashRegister}', [CashRegisterController::class, 'update'])->name('update');
+        Route::get('/{cashRegister}/journal', [CashRegisterController::class, 'journal'])->name('journal');
 
         Route::get('/{cashRegister}/session-courante', [CashRegisterSessionController::class, 'current'])->name('session-courante');
         Route::get('/{cashRegister}/sessions', [CashRegisterSessionController::class, 'index'])->name('sessions.index');

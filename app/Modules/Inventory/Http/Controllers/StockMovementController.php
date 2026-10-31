@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Inventory\Enums\LossOrigin;
 use App\Modules\Inventory\Enums\StockMovementType;
 use App\Modules\Inventory\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Exceptions\StockAlreadyInitializedException;
@@ -57,7 +58,7 @@ class StockMovementController extends ApiController
                     $reason,
                 ),
                 $type->isEntry() => $this->inventory->addStock($product, $type, (string) $request->input('quantite'), $userId, $reason),
-                default => $this->inventory->removeStock($product, $type, (string) $request->input('quantite'), $userId, $reason),
+                default => $this->inventory->removeStock($product, $type, (string) $request->input('quantite'), $userId, $reason, lossOrigin: LossOrigin::tryFrom((string) $request->input('origine_perte'))),
             };
         } catch (StockAlreadyInitializedException $e) {
             return $this->error($e->getMessage(), [], 422, 'STOCK_DEJA_INITIALISE');

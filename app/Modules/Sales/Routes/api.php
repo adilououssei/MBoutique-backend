@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Sales\Http\Controllers\PromotionController;
 use App\Modules\Sales\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,4 +23,11 @@ Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques
         Route::get('/{sale}', [SaleController::class, 'show'])->name('show');
         Route::post('/{sale}/annuler', [SaleController::class, 'cancel'])->name('annuler');
     });
+});
+
+Route::scopeBindings()->middleware(['auth:sanctum', 'store', 'feature:promotions'])->prefix('boutiques/{store}/promotions')->name('promotions.')->group(function () {
+    Route::get('/', [PromotionController::class, 'index'])->name('index');
+    Route::post('/', [PromotionController::class, 'store'])->name('store');
+    Route::get('/{promotion}', [PromotionController::class, 'show'])->name('show');
+    Route::put('/{promotion}', [PromotionController::class, 'update'])->name('update');
 });

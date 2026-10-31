@@ -17,6 +17,9 @@ class TableRequest extends FormRequest
             'nom' => [$this->isMethod('post') ? 'required' : 'sometimes', 'string', 'max:100'],
             'capacite' => ['nullable', 'integer', 'min:1', 'max:500'],
             'actif' => ['sometimes', 'boolean'],
+            // Salle, terrasse, étage… pour regrouper le plan de salle.
+            'espace' => ['nullable', 'string', 'max:100'],
+            'a_nettoyer' => ['sometimes', 'boolean'],
         ];
     }
 }

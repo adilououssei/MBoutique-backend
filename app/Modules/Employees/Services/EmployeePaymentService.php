@@ -52,7 +52,7 @@ class EmployeePaymentService
                     throw new CashRegisterNotOpenException("La caisse \"{$register->nom}\" n'a pas de session ouverte.");
                 }
                 $session = CashRegisterSession::query()->findOrFail($register->session_ouverte_id);
-                $label = ['salaire' => 'Salaire', 'avance' => 'Avance', 'prime' => 'Prime'][$type->value];
+                $label = ['salaire' => 'Salaire', 'avance' => 'Avance', 'prime' => 'Prime', 'commission' => 'Commissions'][$type->value];
 
                 try {
                     $this->cashRegisters->recordExpense($session, $amount, $userId, $payment, trim("{$label} — {$employee->nom} ".($data['periode'] ?? '')));

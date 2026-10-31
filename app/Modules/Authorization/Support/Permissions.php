@@ -140,6 +140,49 @@ final class Permissions
     // Créer/renommer/désactiver les tables de la salle.
     public const TABLES_MANAGE = 'tables.gerer';
 
+    // Transformations — docs/modules.md §Transformations. Le boucher (rôle
+    // employé) découpe et prépare ; annuler une opération (stock remis en
+    // l'état) et définir les fiches de préparation restent au gérant.
+    public const TRANSFORMATIONS_VIEW = 'transformations.voir';
+
+    public const TRANSFORMATIONS_CREATE = 'transformations.creer';
+
+    public const TRANSFORMATIONS_CANCEL = 'transformations.annuler';
+
+    public const PREPARATION_SHEETS_MANAGE = 'fiches_preparation.gerer';
+
+    // Expenses — docs/modules.md §Expenses. Le caissier paie les petites
+    // dépenses (glace, transport) depuis sa caisse ; annuler reste au gérant.
+    public const EXPENSES_VIEW = 'depenses.voir';
+
+    public const EXPENSES_CREATE = 'depenses.creer';
+
+    public const EXPENSES_CANCEL = 'depenses.annuler';
+
+    // Equipment — docs/modules.md §Equipment. Tout le personnel voit les
+    // équipements et peut signaler une panne ; le gérant les gère.
+    public const EQUIPMENT_VIEW = 'equipements.voir';
+
+    public const EQUIPMENT_MANAGE = 'equipements.gerer';
+
+    // Warranties — docs/modules.md §Warranties. Tout le personnel consulte ;
+    // le caissier (comptoir) et l'encadrement enregistrent les réclamations.
+    public const WARRANTIES_VIEW = 'garanties.voir';
+
+    public const WARRANTIES_MANAGE = 'garanties.gerer';
+
+    // Repairs — docs/modules.md §Repairs. Accueil, caissier et techniciens
+    // (rôle employé) enregistrent et font avancer les réparations.
+    public const REPAIRS_VIEW = 'reparations.voir';
+
+    public const REPAIRS_MANAGE = 'reparations.gerer';
+
+    /** Pharmacie : consulter les ordonnances (données de santé) et les délivrer. */
+    public const PRESCRIPTIONS_VIEW = 'ordonnances.voir';
+
+    /** Pharmacie : enregistrer, corriger, clore une ordonnance. */
+    public const PRESCRIPTIONS_MANAGE = 'ordonnances.gerer';
+
     // Reports (Phase 6, tableau de bord) — see app/Modules/Reports/README.md. Read-only
     // aggregates over Sales; the consolidated multi-store variant
     // (rapports.voir_consolide) is business-level and not built yet.
@@ -196,6 +239,21 @@ final class Permissions
             self::ORDERS_UPDATE,
             self::ORDERS_CANCEL,
             self::TABLES_MANAGE,
+            self::TRANSFORMATIONS_VIEW,
+            self::TRANSFORMATIONS_CREATE,
+            self::TRANSFORMATIONS_CANCEL,
+            self::PREPARATION_SHEETS_MANAGE,
+            self::EXPENSES_VIEW,
+            self::EXPENSES_CREATE,
+            self::EXPENSES_CANCEL,
+            self::EQUIPMENT_VIEW,
+            self::EQUIPMENT_MANAGE,
+            self::WARRANTIES_VIEW,
+            self::WARRANTIES_MANAGE,
+            self::REPAIRS_VIEW,
+            self::REPAIRS_MANAGE,
+            self::PRESCRIPTIONS_VIEW,
+            self::PRESCRIPTIONS_MANAGE,
             self::REPORTS_VIEW,
         ];
     }

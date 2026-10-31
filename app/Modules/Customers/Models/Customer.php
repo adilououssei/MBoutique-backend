@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * notes. The credit balance is not a column: it is the sum of the
  * account ledger (CustomerAccountEntry) — docs/customers.md §12.
  */
-#[Fillable(['nom', 'telephone', 'email', 'nom_entreprise', 'adresse', 'notes', 'actif'])]
+#[Fillable(['nom', 'sexe', 'date_naissance', 'telephone', 'email', 'nom_entreprise', 'adresse', 'instructions_remise', 'notes', 'preferences', 'actif'])]
 #[Table('clients')]
 class Customer extends Model
 {
@@ -37,6 +37,9 @@ class Customer extends Model
     protected function casts(): array
     {
         return [
+            'preferences' => 'array',
+            'date_naissance' => 'date',
+            'points_fidelite' => 'integer',
             'actif' => 'boolean',
         ];
     }

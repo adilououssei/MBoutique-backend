@@ -2,7 +2,11 @@
 
 namespace App\Modules\Reports\Services;
 
+use App\Modules\Customers\Models\CustomerAccountEntry;
+use App\Modules\Features\Services\FeatureGate;
 use App\Modules\Reports\Enums\ReportPeriod;
+use App\Modules\Reports\Support\PressingStats;
+use App\Modules\Reports\Support\QueriesStoreData;
 use App\Modules\Sales\Enums\SaleStatus;
 use App\Modules\Sales\Support\Money;
 use App\Modules\Tenancy\Models\Store;
@@ -19,7 +23,11 @@ use Illuminate\Support\Facades\DB;
  */
 class DashboardReportService
 {
+    use QueriesStoreData;
+
     private const TOP_PRODUCTS_LIMIT = 5;
+
+    public function __construct(private readonly FeatureGate $features) {}
 
     /**
      * @return array{
@@ -29,16 +37,17 @@ class DashboardReportService
      *     evolution: array<string, float|null>,
      *     courbe: array{granularite: string, points: array<int, array{cle: string, libelle: string, chiffre_affaires: string, nombre_ventes: int}>},
      *     meilleurs_produits: array<int, array{produit_id: int, nom: string, quantite: string, chiffre_affaires: string}>,
-     *     modes_paiement: array<int, array{mode: string, montant: string, nombre_ventes: int}>
+     *     modes_paiement: array<int, array{mode: string, montant: string, nombre_ventes: int}>,
+     *     credits: array{ventes_credit: string, nombre_ventes_credit: int, encaisse: string, creances_en_cours: string, clients_debiteurs: int}|null
      * }
      */
-    public function build(Store $store, ReportPeriod $period, ?CarbonImmutable $now = null): array
+    public function build(Store $store, ReportPeriod $period, ?CarbonImmutable $now = null, ?array $custom = null): array
     {
         $timezone = $this->timezoneOf($store);
         $now = ($now ?? CarbonImmutable::now())->setTimezone($timezone);
 
-        [$start, $end] = $period->range($now);
-        [$previousStart, $previousEnd] = $period->previousRange($now);
+        [$start, $end] = $period->range($now, $custom);
+        [$previousStart, $previousEnd] = $period->previousRange($now, $custom);
 
         $summary = $this->summary($store, $start, $end);
         $previousSummary = $this->summary($store, $previousStart, $previousEnd);
@@ -68,6 +77,46 @@ class DashboardReportService
             'courbe' => $this->curve($store, $period, $start, $end),
             'meilleurs_produits' => $this->topProducts($store, $start, $end),
             'modes_paiement' => $this->paymentMethods($store, $start, $end),
+            // Ventes à crédit : seulement là où la boutique a des clients.
+            'credits' => $this->features->allows($store, 'clients') ? $this->credits($store, $start, $end) : null,
+            // Salon / coiffure : rendez-vous du jour, clients reçus, meilleures prestations et employés.
+            'salon' => $this->features->allows($store, 'rendez_vous') ? $this->salon($store, $start, $end, $now) : null,
+            'pressing' => $this->features->allows($store, 'articles_depot') ? app(PressingStats::class)->build($store, $this->utc($start), $this->utc($end)) : null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function salon(Store $store, CarbonImmutable $start, CarbonImmutable $end, CarbonImmutable $now): array
+    {
+        $today = DB::table('rendez_vous')->where('boutique_id', $store->id)
+            ->whereBetween('debut_le', [$this->utc($now->startOfDay()), $this->utc($now->endOfDay())])
+            ->selectRaw('statut, COUNT(*) as total')->groupBy('statut')->pluck('total', 'statut');
+        $done = DB::table('rendez_vous')->where('boutique_id', $store->id)->where('statut', 'termine')
+            ->whereBetween('debut_le', [$this->utc($start), $this->utc($end)]);
+        $services = $this->lines($store, $start, $end)->whereNotNull('lignes_vente.service_id');
+
+        return [
+            'rendez_vous_du_jour' => [
+                'total' => (int) $today->sum(),
+                'en_attente' => (int) ($today['en_attente'] ?? 0),
+                'prevus' => (int) ($today['prevu'] ?? 0),
+                'confirmes' => (int) ($today['confirme'] ?? 0),
+                'en_cours' => (int) ($today['en_cours'] ?? 0),
+                'termines' => (int) ($today['termine'] ?? 0),
+                'annules' => (int) ($today['annule'] ?? 0),
+                'absents' => (int) ($today['absent'] ?? 0),
+            ],
+            'rendez_vous_a_venir' => DB::table('rendez_vous')->where('boutique_id', $store->id)->whereIn('statut', ['en_attente', 'prevu', 'confirme'])->where('debut_le', '>', $this->utc($now))->count(),
+            // Clients reçus : rendez-vous terminés de la période (un passage = un client).
+            'clients_recus' => (clone $done)->count(),
+            'meilleures_prestations' => (clone $services)
+                ->selectRaw('lignes_vente.service_id as id, MAX(lignes_vente.nom_produit) as nom, SUM(lignes_vente.quantite) as nombre, SUM(lignes_vente.montant_total) as total')
+                ->groupBy('lignes_vente.service_id')->orderByDesc('nombre')->limit(self::TOP_PRODUCTS_LIMIT)->get()
+                ->map(fn (object $r) => ['service_id' => (int) $r->id, 'nom' => $r->nom, 'nombre' => (int) $r->nombre, 'chiffre_affaires' => Money::round($this->decimal($r->total))])->all(),
+            'employes_actifs' => (clone $services)->join('employes', 'employes.id', '=', 'lignes_vente.employe_id')
+                ->selectRaw('employes.id, MAX(employes.nom) as nom, SUM(lignes_vente.quantite) as nombre, SUM(lignes_vente.montant_total) as total')
+                ->groupBy('employes.id')->orderByDesc('total')->limit(self::TOP_PRODUCTS_LIMIT)->get()
+                ->map(fn (object $r) => ['employe_id' => (int) $r->id, 'nom' => $r->nom, 'prestations' => (int) $r->nombre, 'chiffre_affaires' => Money::round($this->decimal($r->total))])->all(),
         ];
     }
 
@@ -86,7 +135,10 @@ class DashboardReportService
 
         $lines = $this->lines($store, $start, $end)
             ->leftJoin('produits', 'produits.id', '=', 'lignes_vente.produit_id')
-            ->selectRaw('COALESCE(SUM(lignes_vente.quantite), 0) as quantite')
+            // Articles = produits seulement : une prestation n'est pas un article vendu.
+            ->selectRaw('COALESCE(SUM(CASE WHEN lignes_vente.produit_id IS NOT NULL THEN lignes_vente.quantite ELSE 0 END), 0) as quantite')
+            ->selectRaw('COALESCE(SUM(CASE WHEN lignes_vente.service_id IS NOT NULL THEN lignes_vente.quantite ELSE 0 END), 0) as prestations')
+            ->selectRaw('COALESCE(SUM(CASE WHEN lignes_vente.service_id IS NOT NULL THEN lignes_vente.montant_total ELSE 0 END), 0) as ca_prestations')
             ->selectRaw('COALESCE(SUM(CASE WHEN produits.prix_achat IS NOT NULL THEN lignes_vente.montant_total - lignes_vente.quantite * produits.prix_achat END), 0) as marge')
             ->selectRaw('COUNT(CASE WHEN produits.prix_achat IS NOT NULL THEN 1 END) as lignes_avec_cout')
             ->selectRaw('COUNT(DISTINCT CASE WHEN produits.prix_achat IS NULL THEN lignes_vente.produit_id END) as produits_sans_cout')
@@ -104,6 +156,8 @@ class DashboardReportService
             'nombre_ventes' => $count,
             'panier_moyen' => $count > 0 ? Money::round(bcdiv($revenue, (string) $count, 4)) : '0.00',
             'articles_vendus' => $this->quantity($this->decimal($lines->quantite)),
+            'prestations' => (int) $this->decimal($lines->prestations),
+            'chiffre_affaires_prestations' => Money::round($this->decimal($lines->ca_prestations)),
             'remises' => $discounts,
             'benefice_estime' => $estimatedProfit,
             'produits_sans_prix_achat' => (int) $lines->produits_sans_cout,
@@ -196,6 +250,43 @@ class DashboardReportService
             ->all();
     }
 
+    /**
+     * Mis à crédit sur la période (ventes terminées, total − acompte),
+     * remboursements reçus sur la période, et ce que les clients doivent
+     * aujourd'hui toutes périodes confondues (soldes positifs).
+     *
+     * @return array{ventes_credit: string, nombre_ventes_credit: int, encaisse: string, creances_en_cours: string, clients_debiteurs: int}
+     */
+    private function credits(Store $store, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $sold = $this->sales($store, $start, $end)
+            ->whereNotNull('montant_acompte')
+            ->whereColumn('montant_acompte', '<', 'montant_total')
+            ->selectRaw('COUNT(*) as nombre, COALESCE(SUM(montant_total - montant_acompte), 0) as total')
+            ->first();
+
+        $paid = DB::table('mouvements_compte_client')
+            ->where('boutique_id', $store->id)
+            ->where('type', CustomerAccountEntry::PAYMENT)
+            ->whereBetween('created_at', [$this->utc($start), $this->utc($end)])
+            ->sum('montant');
+
+        $balances = DB::table('mouvements_compte_client')
+            ->where('boutique_id', $store->id)
+            ->selectRaw('client_id, SUM(montant) as solde')
+            ->groupBy('client_id')
+            ->get()
+            ->filter(fn (object $row) => bccomp($this->decimal($row->solde), '0', 2) > 0);
+
+        return [
+            'ventes_credit' => Money::round($this->decimal($sold->total)),
+            'nombre_ventes_credit' => (int) $sold->nombre,
+            'encaisse' => Money::round(bcmul($this->decimal($paid), '-1', 4)),
+            'creances_en_cours' => Money::round($balances->reduce(fn (string $carry, object $row) => bcadd($carry, $this->decimal($row->solde), 4), '0')),
+            'clients_debiteurs' => $balances->count(),
+        ];
+    }
+
     private function sales(Store $store, CarbonImmutable $start, CarbonImmutable $end): Builder
     {
         return DB::table('ventes')
@@ -214,19 +305,6 @@ class DashboardReportService
             ->whereBetween('ventes.vendue_le', [$this->utc($start), $this->utc($end)]);
     }
 
-    /** `vendue_le` is stored in the application timezone (UTC). */
-    private function utc(CarbonImmutable $moment): string
-    {
-        return $moment->setTimezone('UTC')->format('Y-m-d H:i:s');
-    }
-
-    private function timezoneOf(Store $store): string
-    {
-        $timezone = (string) ($store->fuseau_horaire ?: 'UTC');
-
-        return in_array($timezone, timezone_identifiers_list(), true) ? $timezone : 'UTC';
-    }
-
     /**
      * Rounded to one decimal; null when there is nothing to compare with
      * (any growth from zero would be an infinite percentage).
@@ -238,23 +316,5 @@ class DashboardReportService
         }
 
         return round((float) bcmul(bcdiv(bcsub($current, $previous, 4), $previous, 6), '100', 4), 1);
-    }
-
-    /**
-     * SUM() comes back as a string on MySQL but as an int/float on
-     * SQLite; bcmath needs a plain numeric string either way.
-     */
-    private function decimal(mixed $value): string
-    {
-        if ($value === null || $value === '') {
-            return '0';
-        }
-
-        return is_float($value) ? number_format($value, 4, '.', '') : (string) $value;
-    }
-
-    private function quantity(string $value): string
-    {
-        return bcadd($value, '0', 3);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Auth\Support\Countries;
 use App\Modules\Features\Models\BusinessDomain;
 use App\Modules\Sales\Enums\SaleStatus;
 use App\Modules\Sales\Models\Sale;
@@ -12,6 +13,7 @@ use App\Modules\Tenancy\Enums\BusinessStatus;
 use App\Modules\Tenancy\Models\Business;
 use App\Modules\Tenancy\Models\Store;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -50,7 +52,33 @@ class DashboardController extends Controller
             'chart' => $chart,
             'chartMax' => max(1, $chart->max('valeur')),
             'domains' => BusinessDomain::query()->withCount('stores')->orderByDesc('stores_count')->limit(6)->get(),
+            'countries' => $this->countries($since),
             'latest' => Business::query()->with(['owner', 'subscription.plan'])->withCount('stores')->latest()->limit(6)->get(),
         ]);
+    }
+
+    /**
+     * Par pays déclaré à l'inscription : comptes, nouveaux comptes et comptes
+     * actifs (appli utilisée) sur 30 jours, entreprises (pays du propriétaire).
+     *
+     * @return Collection<int, array{code: string|null, nom: string, utilisateurs: int, nouveaux: int, actifs: int, entreprises: int}>
+     */
+    private function countries(Carbon $since): Collection
+    {
+        $users = User::query()->selectRaw('pays, COUNT(*) as total')->groupBy('pays')->pluck('total', 'pays');
+        $newcomers = User::query()->where('created_at', '>=', $since)->selectRaw('pays, COUNT(*) as total')->groupBy('pays')->pluck('total', 'pays');
+        $active = User::query()->whereHas('tokens', fn ($q) => $q->where('last_used_at', '>=', $since))
+            ->selectRaw('pays, COUNT(*) as total')->groupBy('pays')->pluck('total', 'pays');
+        $businesses = Business::query()->join('utilisateurs', 'utilisateurs.id', '=', (new Business)->getTable().'.proprietaire_id')
+            ->selectRaw('utilisateurs.pays as pays, COUNT(*) as total')->groupBy('utilisateurs.pays')->pluck('total', 'pays');
+
+        return $users->map(fn ($total, $code) => [
+            'code' => $code ?: null,
+            'nom' => $code ? Countries::name($code) : 'Non renseigné',
+            'utilisateurs' => (int) $total,
+            'nouveaux' => (int) ($newcomers[$code] ?? 0),
+            'actifs' => (int) ($active[$code] ?? 0),
+            'entreprises' => (int) ($businesses[$code] ?? 0),
+        ])->sortByDesc(fn (array $row) => [$row['code'] !== null, $row['utilisateurs']])->values();
     }
 }

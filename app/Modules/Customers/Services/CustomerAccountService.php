@@ -57,6 +57,16 @@ class CustomerAccountService
         });
     }
 
+    /** Retour d'articles en avoir : le compte du client est crédité (dette réduite, ou avoir). */
+    public function recordReturnCredit(Customer $customer, string $amount, ?int $userId, Model $return, ?string $note = null): CustomerAccountEntry
+    {
+        return DB::transaction(function () use ($customer, $amount, $userId, $return, $note) {
+            $this->lock($customer);
+
+            return $this->entry($customer, CustomerAccountEntry::RETURN_CREDIT, bcmul($amount, '-1', 2), $userId, $return, $note);
+        });
+    }
+
     /**
      * Remboursement d'une dette. En mode `caisse`, l'argent entre dans la
      * session ouverte (mouvement référençant cette écriture) ; en mode

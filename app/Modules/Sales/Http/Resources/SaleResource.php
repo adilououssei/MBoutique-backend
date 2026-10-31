@@ -26,6 +26,8 @@ class SaleResource extends JsonResource
             'lignes' => SaleItemResource::collection($this->whenLoaded('items')),
             'sous_total' => $this->sous_total,
             'remise' => $this->montant_remise,
+            'points_utilises' => (int) $this->points_utilises,
+            'remise_fidelite' => $this->remise_fidelite,
             'total' => $this->montant_total,
             'mode_paiement' => $this->mode_paiement->value,
             // Vente à crédit : payé comptant / reste mis sur le compte client.

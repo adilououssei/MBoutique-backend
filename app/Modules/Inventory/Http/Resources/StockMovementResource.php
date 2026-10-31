@@ -22,6 +22,8 @@ class StockMovementResource extends JsonResource
             'reference_type' => $this->reference_type,
             'reference_id' => $this->reference_id,
             'motif' => $this->motif,
+            'origine_perte' => $this->origine_perte?->value,
+            'cout_unitaire' => $this->cout_unitaire,
             'cree_par' => $this->whenLoaded('createdBy', fn () => $this->createdBy ? [
                 'id' => $this->createdBy->id,
                 'nom' => $this->createdBy->nom,

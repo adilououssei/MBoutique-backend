@@ -243,7 +243,7 @@ class CashRegisterSessionTest extends TestCase
             ->assertStatus(200);
     }
 
-    public function test_a_cashier_cannot_create_a_new_cash_register(): void
+    public function test_a_cashier_creates_their_own_single_register(): void
     {
         ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
         $cashier = User::factory()->create();
@@ -251,6 +251,21 @@ class CashRegisterSessionTest extends TestCase
         $this->postJson("/api/boutiques/{$store->id}/membres", ['email' => $cashier->email, 'role' => 'caissier'])->assertStatus(201);
 
         Sanctum::actingAs($cashier);
+
+        $this->postJson("/api/boutiques/{$store->id}/caisses", ['nom' => 'Caisse de Fatou'])
+            ->assertStatus(201)->assertJsonPath('donnees.cree_par.id', $cashier->id)->assertJsonPath('donnees.est_a_moi', true);
+        $this->postJson("/api/boutiques/{$store->id}/caisses", ['nom' => 'Deuxième'])
+            ->assertStatus(422)->assertJsonPath('code', 'CAISSE_DEJA_ATTRIBUEE');
+    }
+
+    public function test_an_employee_cannot_create_a_register(): void
+    {
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['caisse']);
+        $employee = User::factory()->create();
+        Sanctum::actingAs($owner);
+        $this->postJson("/api/boutiques/{$store->id}/membres", ['email' => $employee->email, 'role' => 'employe'])->assertStatus(201);
+
+        Sanctum::actingAs($employee);
 
         $this->postJson("/api/boutiques/{$store->id}/caisses", ['nom' => 'Nouvelle caisse'])->assertStatus(403);
     }

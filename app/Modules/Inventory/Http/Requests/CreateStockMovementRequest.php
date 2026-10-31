@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Http\Requests;
 
+use App\Modules\Inventory\Enums\LossOrigin;
 use App\Modules\Inventory\Enums\StockMovementType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,6 +33,8 @@ class CreateStockMovementRequest extends FormRequest
             // Only meaningful the one time a Stock is created.
             'quantite_minimum' => ['nullable', 'numeric', 'min:0', 'prohibited_unless:type,initial'],
             'motif' => ['nullable', 'string', 'max:500'],
+            // Perte : son origine, facultative (péremption, avarie…).
+            'origine_perte' => ['nullable', 'prohibited_unless:type,perte', Rule::enum(LossOrigin::class)],
         ];
     }
 

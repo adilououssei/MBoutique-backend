@@ -95,3 +95,11 @@ Analysé, explicitement refusé à ce stade : les tables concernées (`fonctionn
 | `alimentation_generale` | `rendez_vous` | `false` |
 | `restaurant` + override `inventory=false` | `stock` | `false` (l'override l'emporte sur le défaut du domaine) |
 | `restaurant`, plan limité à `commandes` | `tables` (dépend de `commandes`, `commandes` lui-même autorisé) | `false` (le plan bloque `tables` directement, indépendamment de sa dépendance) |
+
+## 10. Classement, attribution et effet dans l'application (2026-11-04)
+
+- **Classement** : `fonctionnalites.categorie` (`socle`, `commerce`, `services`, `restauration`, `boucherie`, `gestion`, `autres`) et `description`, initialisés depuis `App\Modules\Features\Support\FeatureCatalog` sans écraser ce que l'admin a saisi. L'admin (back-office web) affiche les fonctionnalités d'un domaine groupées par type d'activité, avec « Aussi : » les autres métiers qui les utilisent.
+- **Attribution** : page admin « Fonctionnalités » (`/admin/fonctionnalites`) pour donner une fonctionnalité à d'autres métiers. `Admin\Support\DomainFeatureAssignment` applique les dépendances : ajouter une fonctionnalité à un métier lui ajoute ce dont elle a besoin (récursif) ; la retirer retire aussi ce qui en dépend. La page d'un domaine fait de même (cases liées en JavaScript, dépendances manquantes ajoutées côté serveur, signalées dans le message).
+- **Effet immédiat** : `FeatureGate` n'a pas de cache, un retrait vaut pour la requête suivante. L'application recharge `GET /boutiques/{store}/fonctionnalites` au retour au premier plan, à l'ouverture de l'Accueil et de « Plus », et dès qu'une réponse porte le code `FONCTIONNALITE_DESACTIVEE` ; une garde de navigation (`FeatureGuard`, `lib/feature-routes.ts`) quitte vers l'accueil tout écran dont la fonctionnalité n'est plus active. L'utilisateur ne voit donc pas l'erreur : l'entrée disparaît du menu.
+- **Vocabulaire du métier** : `domaines_activite.vocabulaire` (JSON : `produit`, `categorie`, `service`, `fournisseur`, `poste`, `note_rendez_vous`, `dictee`, `unite`), éditable dans l'admin (« Textes du métier »), renvoyé dans `domaine.vocabulaire` de l'endpoint ci-dessus. L'application s'en sert pour les exemples des formulaires (« Ex : Filet de bœuf ») et l'unité par défaut d'un nouveau produit (kg en boucherie) ; textes neutres à défaut.
+

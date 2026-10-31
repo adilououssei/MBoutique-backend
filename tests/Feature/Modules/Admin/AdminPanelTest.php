@@ -73,6 +73,17 @@ class AdminPanelTest extends TestCase
         }
     }
 
+    public function test_the_dashboard_and_user_list_show_countries(): void
+    {
+        User::factory()->count(2)->create(['pays' => 'SN']);
+        $ivorian = User::factory()->create(['pays' => 'CI', 'nom' => 'Koffi Yao']);
+        User::factory()->create(['pays' => 'SN', 'nom' => 'Awa Ndiaye']);
+        $this->actingAs($this->admin());
+
+        $this->get(route('admin.tableau-de-bord'))->assertOk()->assertSee('Sénégal')->assertSee('Côte d’Ivoire')->assertSee('Non renseigné');
+        $this->get(route('admin.utilisateurs.index', ['pays' => 'CI']))->assertOk()->assertSee($ivorian->nom)->assertDontSee('Awa Ndiaye');
+    }
+
     public function test_a_merchant_session_cannot_reach_the_admin(): void
     {
         $this->actingAs(User::factory()->create());

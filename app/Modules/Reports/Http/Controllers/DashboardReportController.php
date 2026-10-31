@@ -14,6 +14,6 @@ class DashboardReportController extends ApiController
 
     public function show(Store $store, DashboardReportRequest $request): JsonResponse
     {
-        return $this->success($this->reports->build($store, $request->period()));
+        return $this->success($this->reports->build($store, $request->period(), null, $request->customRange()));
     }
 }

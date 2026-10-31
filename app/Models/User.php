@@ -23,7 +23,7 @@ use Spatie\Permission\Traits\HasRoles;
  * is modelled separately (see app/Modules/Tenancy). See docs/database.md
  * and docs/modules.md "Auth" vs "Users".
  */
-#[Fillable(['nom', 'email', 'telephone', 'password'])]
+#[Fillable(['nom', 'email', 'telephone', 'pays', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 #[Table('utilisateurs')]
 class User extends Authenticatable

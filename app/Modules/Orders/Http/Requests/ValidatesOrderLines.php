@@ -20,6 +20,19 @@ trait ValidatesOrderLines
             'lignes.*.mode_prix' => ['nullable', Rule::enum(PricingMode::class)],
             'lignes.*.quantite' => ['required', 'numeric', 'gt:0'],
             'lignes.*.note' => ['nullable', 'string', 'max:255'],
+            // Suppléments payants du plat (restaurant) : deviennent des lignes rattachées.
+            'lignes.*.supplements' => ['nullable', 'array', 'max:10'],
+            'lignes.*.supplements.*.produit_id' => ['required', 'integer', TenantScopedRules::existsInCurrentStore('produits')->whereNull('deleted_at')],
+            'lignes.*.supplements.*.quantite' => ['nullable', 'numeric', 'gt:0'],
+            // Pressing : type d'article (prix de la grille) et description de chaque pièce déposée.
+            'lignes.*.type_article' => ['nullable', 'string', 'max:100'],
+            'lignes.*.articles' => ['nullable', 'array', 'max:100'],
+            'lignes.*.articles.*.type_article' => ['nullable', 'string', 'max:100'],
+            'lignes.*.articles.*.couleur' => ['nullable', 'string', 'max:100'],
+            'lignes.*.articles.*.marque' => ['nullable', 'string', 'max:100'],
+            'lignes.*.articles.*.etat' => ['nullable', 'string', 'max:255'],
+            'lignes.*.articles.*.defauts' => ['nullable', 'string', 'max:500'],
+            'lignes.*.articles.*.instructions' => ['nullable', 'string', 'max:500'],
         ];
     }
 

@@ -3,6 +3,7 @@
 use App\Modules\Admin\Http\Controllers\BusinessController;
 use App\Modules\Admin\Http\Controllers\DashboardController;
 use App\Modules\Admin\Http\Controllers\DomainController;
+use App\Modules\Admin\Http\Controllers\FeatureController;
 use App\Modules\Admin\Http\Controllers\LoginController;
 use App\Modules\Admin\Http\Controllers\PlanController;
 use App\Modules\Admin\Http\Controllers\StoreController;
@@ -51,4 +52,8 @@ Route::middleware(['auth', 'admin.plateforme'])->prefix('admin')->name('admin.')
     Route::get('/domaines', [DomainController::class, 'index'])->name('domaines.index');
     Route::get('/domaines/{domain}', [DomainController::class, 'show'])->name('domaines.show');
     Route::put('/domaines/{domain}', [DomainController::class, 'update'])->name('domaines.update');
+
+    Route::get('/fonctionnalites', [FeatureController::class, 'index'])->name('fonctionnalites.index');
+    Route::get('/fonctionnalites/{feature}', [FeatureController::class, 'edit'])->name('fonctionnalites.edit');
+    Route::put('/fonctionnalites/{feature}', [FeatureController::class, 'update'])->name('fonctionnalites.update');
 });

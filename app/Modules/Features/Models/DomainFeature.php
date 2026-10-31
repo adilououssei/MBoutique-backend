@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * that a surrogate key + a unique constraint is the pragmatic choice; the
  * uniqueness guarantee is identical either way.
  */
-#[Fillable(['domaine_activite_id', 'fonctionnalite_id', 'active_par_defaut'])]
+#[Fillable(['domaine_activite_id', 'fonctionnalite_id', 'active_par_defaut', 'optionnelle'])]
 #[Table('fonctionnalites_domaine')]
 class DomainFeature extends Model
 {

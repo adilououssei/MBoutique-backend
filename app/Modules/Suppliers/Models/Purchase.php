@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['fournisseur_id', 'reference', 'montant_total', 'montant_paye', 'note', 'cle_idempotence', 'achete_le', 'cree_par_id'])]
+#[Fillable(['fournisseur_id', 'reference', 'numero_facture_fournisseur', 'reference_commande', 'statut', 'commande_le', 'recu_par_id', 'remise_fournisseur', 'frais_annexes', 'detail_frais', 'montant_total', 'montant_paye', 'note', 'cle_idempotence', 'achete_le', 'cree_par_id'])]
 #[Table('achats')]
 class Purchase extends Model
 {
@@ -22,6 +22,9 @@ class Purchase extends Model
         return [
             'montant_total' => 'decimal:2',
             'montant_paye' => 'decimal:2',
+            'remise_fournisseur' => 'decimal:2',
+            'commande_le' => 'datetime',
+            'frais_annexes' => 'decimal:2',
             'achete_le' => 'datetime',
         ];
     }
@@ -51,9 +54,19 @@ class Purchase extends Model
         return $this->hasMany(PurchasePayment::class, 'achat_id');
     }
 
-    /** Reste à payer au fournisseur. */
+    /** Commande pas encore reçue : ni stock, ni dette. */
+    public function isOrder(): bool
+    {
+        return $this->statut === 'commande';
+    }
+
+    /** Reste à payer au fournisseur (rien tant que la commande n'est pas reçue). */
     public function amountDue(): string
     {
+        if ($this->isOrder()) {
+            return '0.00';
+        }
+
         return bcsub((string) $this->montant_total, (string) $this->montant_paye, 2);
     }
 

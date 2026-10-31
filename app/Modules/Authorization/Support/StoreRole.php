@@ -107,17 +107,25 @@ final class StoreRole
 
         $ordersStaffAccess = [Permissions::ORDERS_VIEW, Permissions::ORDERS_CREATE, Permissions::ORDERS_UPDATE];
 
+        $expensesAndEquipmentFullAccess = [
+            Permissions::EXPENSES_VIEW, Permissions::EXPENSES_CREATE, Permissions::EXPENSES_CANCEL, Permissions::EQUIPMENT_VIEW, Permissions::EQUIPMENT_MANAGE,
+        ];
+
+        $transformationsFullAccess = [
+            Permissions::TRANSFORMATIONS_VIEW, Permissions::TRANSFORMATIONS_CREATE, Permissions::TRANSFORMATIONS_CANCEL, Permissions::PREPARATION_SHEETS_MANAGE,
+        ];
+
         return [
-            self::OWNER => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, Permissions::CREDITS_MANAGE, ...$suppliersFullAccess, Permissions::EMPLOYEES_VIEW, Permissions::EMPLOYEES_MANAGE, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TABLES_MANAGE, Permissions::REPORTS_VIEW],
-            self::ADMIN => [Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, Permissions::CREDITS_MANAGE, ...$suppliersFullAccess, Permissions::EMPLOYEES_VIEW, Permissions::EMPLOYEES_MANAGE, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TABLES_MANAGE, Permissions::REPORTS_VIEW],
-            self::MANAGER => [Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, Permissions::CREDITS_MANAGE, ...$suppliersFullAccess, Permissions::EMPLOYEES_VIEW, Permissions::EMPLOYEES_MANAGE, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TABLES_MANAGE, Permissions::REPORTS_VIEW],
+            self::OWNER => [Permissions::PRESCRIPTIONS_VIEW, Permissions::PRESCRIPTIONS_MANAGE, Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, Permissions::CREDITS_MANAGE, ...$suppliersFullAccess, Permissions::EMPLOYEES_VIEW, Permissions::EMPLOYEES_MANAGE, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TABLES_MANAGE, ...$transformationsFullAccess, ...$expensesAndEquipmentFullAccess, Permissions::WARRANTIES_VIEW, Permissions::WARRANTIES_MANAGE, Permissions::REPAIRS_VIEW, Permissions::REPAIRS_MANAGE, Permissions::REPORTS_VIEW],
+            self::ADMIN => [Permissions::PRESCRIPTIONS_VIEW, Permissions::PRESCRIPTIONS_MANAGE, Permissions::STORE_USERS_VIEW, Permissions::STORE_USERS_MANAGE, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, Permissions::CREDITS_MANAGE, ...$suppliersFullAccess, Permissions::EMPLOYEES_VIEW, Permissions::EMPLOYEES_MANAGE, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TABLES_MANAGE, ...$transformationsFullAccess, ...$expensesAndEquipmentFullAccess, Permissions::WARRANTIES_VIEW, Permissions::WARRANTIES_MANAGE, Permissions::REPAIRS_VIEW, Permissions::REPAIRS_MANAGE, Permissions::REPORTS_VIEW],
+            self::MANAGER => [Permissions::PRESCRIPTIONS_VIEW, Permissions::PRESCRIPTIONS_MANAGE, Permissions::STORE_USERS_VIEW, ...$catalogFullAccess, ...$customersFullAccess, ...$inventoryFullAccess, ...$cashRegisterFullAccess, ...$salesFullAccess, Permissions::SALES_CANCEL, Permissions::CREDITS_MANAGE, ...$suppliersFullAccess, Permissions::EMPLOYEES_VIEW, Permissions::EMPLOYEES_MANAGE, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TABLES_MANAGE, ...$transformationsFullAccess, ...$expensesAndEquipmentFullAccess, Permissions::WARRANTIES_VIEW, Permissions::WARRANTIES_MANAGE, Permissions::REPAIRS_VIEW, Permissions::REPAIRS_MANAGE, Permissions::REPORTS_VIEW],
             // Cashier: read-only everywhere else, but operates the
             // register fully (opens/closes their own shift, cash in/out)
             // and processes sales — "Caissier : ventes.creer, ventes.voir,
             // caisse.*, ..." (docs/permissions.md §3, confirmed
             // literally for sales, unlike caisse.gerer — see above).
-            self::CASHIER => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterCashierAccess, ...$salesFullAccess, Permissions::CREDITS_MANAGE, Permissions::SUPPLIERS_VIEW, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL],
-            self::EMPLOYEE => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterReadOnly, ...$salesReadOnly, Permissions::APPOINTMENTS_VIEW, ...$ordersStaffAccess],
+            self::CASHIER => [Permissions::PRESCRIPTIONS_VIEW, Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterCashierAccess, ...$salesFullAccess, Permissions::CREDITS_MANAGE, Permissions::SUPPLIERS_VIEW, ...$appointmentsFullAccess, ...$ordersStaffAccess, Permissions::ORDERS_CANCEL, Permissions::TRANSFORMATIONS_VIEW, Permissions::EXPENSES_VIEW, Permissions::EXPENSES_CREATE, Permissions::EQUIPMENT_VIEW, Permissions::WARRANTIES_VIEW, Permissions::WARRANTIES_MANAGE, Permissions::REPAIRS_VIEW, Permissions::REPAIRS_MANAGE],
+            self::EMPLOYEE => [Permissions::STORE_USERS_VIEW, ...$catalogReadOnly, ...$customersReadOnly, ...$inventoryReadOnly, ...$cashRegisterReadOnly, ...$salesReadOnly, Permissions::APPOINTMENTS_VIEW, ...$ordersStaffAccess, Permissions::TRANSFORMATIONS_VIEW, Permissions::TRANSFORMATIONS_CREATE, Permissions::EQUIPMENT_VIEW, Permissions::WARRANTIES_VIEW, Permissions::REPAIRS_VIEW, Permissions::REPAIRS_MANAGE],
         ];
     }
 

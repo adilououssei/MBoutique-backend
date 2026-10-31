@@ -3,9 +3,10 @@
 namespace App\Modules\Sales\Enums;
 
 /**
- * Cash and Credit are accepted by CreateSaleCheckoutRequest — the
- * rest exist so the column never needs a shape change when a real
- * Payment/PaymentMethod module is built later (Phase 4.3 brief §6/§41).
+ * Moyens acceptés à l'encaissement : espèces, Mobile Money, carte, virement,
+ * crédit. Seules les espèces (et l'acompte d'une vente à crédit) entrent dans
+ * la caisse : un paiement Mobile Money ou carte n'est pas de l'argent dans le
+ * tiroir. `mixte` reste réservé.
  */
 enum PaymentMethod: string
 {
@@ -20,6 +21,12 @@ enum PaymentMethod: string
     /** @return array<int, self> */
     public static function acceptedForCheckout(): array
     {
-        return [self::Cash, self::Credit];
+        return [self::Cash, self::MobileMoney, self::Card, self::BankTransfer, self::Credit];
+    }
+
+    /** L'argent reçu à la vente entre-t-il dans le tiroir-caisse ? */
+    public function collectsCash(): bool
+    {
+        return $this === self::Cash || $this === self::Credit;
     }
 }

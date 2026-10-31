@@ -33,6 +33,8 @@ class CreateCategoryRequest extends FormRequest
             'nom' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', TenantScopedRules::uniqueInCurrentStore('categories', 'slug')],
             'description' => ['nullable', 'string'],
+            // Sous-catégorie : rattachée à une catégorie de la boutique.
+            'parent_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('categories')->whereNull('deleted_at')],
             'actif' => ['sometimes', 'boolean'],
         ];
     }

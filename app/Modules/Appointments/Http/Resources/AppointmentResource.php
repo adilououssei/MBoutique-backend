@@ -28,6 +28,25 @@ class AppointmentResource extends JsonResource
             'notes' => $this->notes,
             'motif_annulation' => $this->motif_annulation,
             'vente_id' => $this->vente_id,
+            // Salon : prestations (durée totale = somme), acompte, forfait utilisé.
+            'prestations' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
+                'id' => $item->id,
+                'service_id' => $item->service_id,
+                'nom' => $item->service?->nom,
+                'employe' => $item->employee ? ['id' => $item->employee->id, 'nom' => $item->employee->nom] : null,
+                'duree_minutes' => $item->duree_minutes,
+                'prix' => $item->prix,
+            ])->values()),
+            'montant_prestations' => $this->whenLoaded('items', fn () => $this->items->reduce(fn (string $carry, $i) => bcadd($carry, (string) $i->prix, 2), '0.00')),
+            'acompte' => $this->acompte,
+            'commence_le' => $this->commence_le,
+            'forfait' => $this->whenLoaded('customerPackage', fn () => $this->customerPackage ? [
+                'id' => $this->customerPackage->id,
+                'nom' => $this->customerPackage->package?->nom,
+                'seances_restantes' => $this->customerPackage->remaining(),
+                'statut' => $this->customerPackage->displayStatus(),
+            ] : null),
+            'seance_decomptee' => (bool) $this->seance_decomptee,
             'cree_le' => $this->created_at,
         ];
     }

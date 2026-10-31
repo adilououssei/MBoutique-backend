@@ -7,6 +7,8 @@ use App\Modules\Notifications\Support\StoreRecipients;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Enums\OrderType;
 use App\Modules\Orders\Events\OrderStatusChanged;
+use App\Modules\Orders\Models\DropOffItem;
+use App\Modules\Orders\Services\DropOffTracker;
 use Illuminate\Support\Facades\Notification;
 
 /** Commande prête → l'équipe qui sert/encaisse (`commandes.voir`), sauf celui qui l'a marquée prête. */
@@ -24,6 +26,13 @@ class NotifyOrderReady
         $where = $order->diningTable?->nom
             ?? ($order->type === OrderType::DropOff ? 'à retirer' : ($order->nom_client ?: $order->reference));
         $title = $order->type === OrderType::DropOff ? 'Dépôt prêt' : 'Commande prête';
+        // Pressing : rappeler le solde à encaisser au retrait.
+        if (DropOffItem::query()->where('commande_id', $order->id)->exists()) {
+            $balance = app(DropOffTracker::class)->paymentSummary($order)['solde'];
+            if (bccomp($balance, '0', 2) > 0) {
+                $where .= " · solde {$balance} à encaisser";
+            }
+        }
 
         Notification::send(
             $this->recipients->withPermission($order->boutique_id, 'commandes.voir', $event->userId),

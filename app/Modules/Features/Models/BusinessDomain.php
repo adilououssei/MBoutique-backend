@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * tenant-scoped — administered by the platform admin (Phase 6), seeded
  * for now. See docs/features.md.
  */
-#[Fillable(['nom', 'slug', 'description', 'icone', 'actif'])]
+#[Fillable(['nom', 'slug', 'description', 'icone', 'vocabulaire', 'actif'])]
 #[Table('domaines_activite')]
 class BusinessDomain extends Model
 {
@@ -35,6 +35,7 @@ class BusinessDomain extends Model
     {
         return [
             'actif' => 'boolean',
+            'vocabulaire' => 'array',
         ];
     }
 

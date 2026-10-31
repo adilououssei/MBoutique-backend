@@ -5,6 +5,7 @@ namespace App\Modules\Notifications\Providers;
 use App\Modules\Appointments\Events\AppointmentBooked;
 use App\Modules\Inventory\Events\StockLevelChanged;
 use App\Modules\Notifications\Console\SendAppointmentReminders;
+use App\Modules\Notifications\Console\SendDropOffAlerts;
 use App\Modules\Notifications\Listeners\NotifyAppointmentBooked;
 use App\Modules\Notifications\Listeners\NotifyLowStock;
 use App\Modules\Notifications\Listeners\NotifyOrderReady;
@@ -31,13 +32,14 @@ class NotificationsServiceProvider extends ServiceProvider
         Event::listen(AppointmentBooked::class, NotifyAppointmentBooked::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([SendAppointmentReminders::class]);
+            $this->commands([SendAppointmentReminders::class, SendDropOffAlerts::class]);
         }
 
         // Nécessite le planificateur en production : `* * * * * php artisan schedule:run`
         // (ou `php artisan schedule:work` en développement).
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('notifications:rappels-rendez-vous')->everyFiveMinutes()->withoutOverlapping();
+            $schedule->command('notifications:depots')->hourly()->withoutOverlapping();
         });
     }
 }

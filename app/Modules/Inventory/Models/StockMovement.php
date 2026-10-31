@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Models;
 
 use App\Models\User;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Inventory\Enums\LossOrigin;
 use App\Modules\Inventory\Enums\StockMovementType;
 use App\Modules\Tenancy\Models\Store;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * InventoryService creates these; no controller calls
  * StockMovement::create() directly.
  */
-#[Fillable(['stock_id', 'produit_id', 'type', 'quantite', 'quantite_avant', 'quantite_apres', 'reference_type', 'reference_id', 'motif', 'metadonnees', 'cree_par_id'])]
+#[Fillable(['stock_id', 'produit_id', 'type', 'quantite', 'quantite_avant', 'quantite_apres', 'reference_type', 'reference_id', 'motif', 'origine_perte', 'cout_unitaire', 'metadonnees', 'cree_par_id'])]
 #[Table('mouvements_stock')]
 class StockMovement extends Model
 {
@@ -37,6 +38,8 @@ class StockMovement extends Model
     {
         return [
             'type' => StockMovementType::class,
+            'origine_perte' => LossOrigin::class,
+            'cout_unitaire' => 'decimal:2',
             'quantite' => 'decimal:3',
             'quantite_avant' => 'decimal:3',
             'quantite_apres' => 'decimal:3',

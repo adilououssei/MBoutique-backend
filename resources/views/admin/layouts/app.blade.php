@@ -19,6 +19,7 @@
     $config = [
         ['route' => 'admin.forfaits.index', 'match' => 'admin.forfaits.*', 'icon' => 'pricetags', 'label' => 'Forfaits'],
         ['route' => 'admin.domaines.index', 'match' => 'admin.domaines.*', 'icon' => 'apps', 'label' => "Domaines d'activité"],
+        ['route' => 'admin.fonctionnalites.index', 'match' => 'admin.fonctionnalites.*', 'icon' => 'extension-puzzle', 'label' => 'Fonctionnalités'],
     ];
     $me = auth()->user();
 @endphp

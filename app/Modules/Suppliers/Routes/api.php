@@ -25,6 +25,7 @@ Route::scopeBindings()->middleware(['auth:sanctum', 'store'])->prefix('boutiques
             Route::post('/', [PurchaseController::class, 'store'])->name('store');
             Route::get('/{purchase}', [PurchaseController::class, 'show'])->name('show');
             Route::post('/{purchase}/paiements', [PurchaseController::class, 'pay'])->name('paiements');
+            Route::post('/{purchase}/reception', [PurchaseController::class, 'receive'])->middleware('feature:commandes_fournisseurs')->name('reception');
         });
     });
 });

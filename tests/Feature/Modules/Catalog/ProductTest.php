@@ -221,4 +221,23 @@ class ProductTest extends TestCase
         $this->getJson("/api/boutiques/{$store->id}/produits?mode_prix=detail")
             ->assertStatus(200)->assertJsonCount(1, 'donnees');
     }
+
+    public function test_a_weighed_product_keeps_its_sale_quantities_sorted(): void
+    {
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        Sanctum::actingAs($owner);
+
+        $id = $this->postJson("/api/boutiques/{$store->id}/produits", [
+            'nom' => 'Viande de bœuf', 'unite' => 'kg', 'vente_detail_active' => true, 'prix_detail' => 4000,
+            'quantites_vente' => [2.5, 0.25, 1, 0.75, 0.5],
+        ])->assertStatus(201)
+            ->assertJsonPath('donnees.quantites_vente', ['0.250', '0.500', '0.750', '1.000', '2.500'])
+            ->json('donnees.id');
+
+        $this->putJson("/api/boutiques/{$store->id}/produits/{$id}", ['quantites_vente' => []])
+            ->assertOk()->assertJsonPath('donnees.quantites_vente', null);
+
+        $this->putJson("/api/boutiques/{$store->id}/produits/{$id}", ['quantites_vente' => [0]])
+            ->assertStatus(422);
+    }
 }

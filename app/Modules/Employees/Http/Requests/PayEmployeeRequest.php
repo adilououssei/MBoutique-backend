@@ -18,7 +18,7 @@ class PayEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::enum(EmployeePaymentType::class)],
+            'type' => ['required', Rule::enum(EmployeePaymentType::class)->except([EmployeePaymentType::Commission])],
             'montant' => ['required', 'numeric', 'gt:0'],
             'mode' => ['required', Rule::enum(EmployeePaymentMode::class)],
             'caisse_id' => ['nullable', 'required_if:mode,caisse', 'integer', TenantScopedRules::existsInCurrentStore('caisses')],

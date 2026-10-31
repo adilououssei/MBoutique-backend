@@ -103,6 +103,14 @@ class FeatureGate
         return $features->mapWithKeys(fn (Feature $feature) => [$feature->slug => $resolve($feature->id)]);
     }
 
+    /** L'abonnement de l'entreprise inclut-il cette fonctionnalité ? (pas de restriction = oui) */
+    public function planIncludes(Store $store, int $featureId): bool
+    {
+        $ids = $this->planFeatureIds($store);
+
+        return $ids === null || in_array($featureId, $ids, true);
+    }
+
     /**
      * @return array<int>|null null = no plan-level restriction (no subscription yet, or the plan doesn't restrict by feature)
      */

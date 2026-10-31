@@ -2,6 +2,7 @@
 
 namespace App\Modules\CashRegister\Models;
 
+use App\Models\User;
 use App\Modules\Tenancy\Models\Store;
 use App\Shared\Tenancy\Concerns\BelongsToStore;
 use Database\Factories\Modules\CashRegister\CashRegisterFactory;
@@ -44,6 +45,20 @@ class CashRegister extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class, 'boutique_id');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cree_par_id');
+    }
+
+    /**
+     * Seul le créateur modifie sa caisse. Une caisse sans créateur connu
+     * (créée avant ce suivi) reste modifiable par qui a caisse.gerer.
+     */
+    public function isEditableBy(User $user): bool
+    {
+        return $this->cree_par_id === null ? $user->can('caisse.gerer') : $this->cree_par_id === $user->id;
     }
 
     public function sessions(): HasMany

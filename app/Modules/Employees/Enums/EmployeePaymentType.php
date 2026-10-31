@@ -10,4 +10,7 @@ enum EmployeePaymentType: string
     case Advance = 'avance';
 
     case Bonus = 'prime';
+
+    /** Commissions sur prestations (salon), réglées par la paie. */
+    case Commission = 'commission';
 }

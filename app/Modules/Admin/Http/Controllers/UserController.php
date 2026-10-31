@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Http\Controllers;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Auth\Support\Countries;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,12 +23,16 @@ class UserController extends Controller
                 $q->where(fn ($q) => $q->where('nom', 'like', $term)->orWhere('email', 'like', $term)->orWhere('telephone', 'like', $term));
             })
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->string('statut')))
+            ->when($request->filled('pays'), fn ($q) => $q->where('pays', $request->string('pays')))
             ->when($request->input('type') === 'admin', fn ($q) => $q->where('est_admin_plateforme', true))
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.utilisateurs.index', ['users' => $users]);
+        $countries = User::query()->whereNotNull('pays')->distinct()->pluck('pays')
+            ->mapWithKeys(fn (string $code) => [$code => Countries::name($code)])->sort();
+
+        return view('admin.utilisateurs.index', ['users' => $users, 'countries' => $countries]);
     }
 
     /**

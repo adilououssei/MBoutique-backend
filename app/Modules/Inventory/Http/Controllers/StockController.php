@@ -32,6 +32,10 @@ class StockController extends ApiController
                 'product',
                 fn ($q) => $q->where('nom', 'like', '%'.$request->string('recherche').'%')
             ))
+            ->when($request->filled('categorie_id'), fn ($q) => $q->whereHas('product', fn ($q) => $q->where('categorie_id', $request->integer('categorie_id'))))
+            ->when($request->filled('marque'), fn ($q) => $q->whereHas('product', fn ($q) => $q->where('marque', $request->string('marque'))))
+            ->when($request->filled('modele'), fn ($q) => $q->whereHas('product', fn ($q) => $q->where('modele', $request->string('modele'))))
+            ->when($request->filled('etat'), fn ($q) => $q->whereHas('product', fn ($q) => $q->where('etat', $request->string('etat'))))
             ->when($request->boolean('stock_faible'), fn ($q) => $q->whereNotNull('quantite_minimum')->whereColumn('quantite', '<=', 'quantite_minimum'))
             ->orderBy('id')
             ->paginate(min((int) $request->integer('par_page', 20), 100));

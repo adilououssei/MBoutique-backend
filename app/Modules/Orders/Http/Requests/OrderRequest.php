@@ -31,6 +31,13 @@ class OrderRequest extends FormRequest
             'adresse_livraison' => ['nullable', 'string', 'max:255'],
             'date_promise' => ['nullable', 'date'],
             'note' => ['nullable', 'string'],
+            // Restaurant : serveur responsable (membre de la boutique) et nombre de couverts.
+            'serveur_id' => ['nullable', 'integer', Rule::exists('utilisateurs_boutique', 'utilisateur_id')->where('boutique_id', $this->route('store')?->id)],
+            'nombre_couverts' => ['nullable', 'integer', 'min:1', 'max:500'],
+            // Pressing : employé responsable, livraison interne (statut, livreur).
+            'responsable_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('employes')->whereNull('deleted_at')],
+            'statut_livraison' => ['nullable', 'in:a_livrer,en_livraison,livree'],
+            'livreur_id' => ['nullable', 'integer', TenantScopedRules::existsInCurrentStore('employes')->whereNull('deleted_at')],
             ...($creating ? $this->lineRules(false) : []),
         ];
     }

@@ -78,6 +78,41 @@
 
     <div class="card">
         <div class="card-head">
+            <div><h2>Pays</h2><div class="sub">Inscriptions et utilisation par pays déclaré · actifs = application utilisée sur 30 jours</div></div>
+            <div class="right"><a class="row-link" href="{{ route('admin.utilisateurs.index') }}">Utilisateurs</a></div>
+        </div>
+        @if ($countries->isEmpty())
+            <div class="card-pad"><p class="muted">Aucun utilisateur.</p></div>
+        @else
+            @php $countryMax = max(1, $countries->max('utilisateurs')); @endphp
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Pays</th><th class="num">Comptes</th><th class="num">Nouveaux (30 j)</th><th class="num">Actifs (30 j)</th><th class="num">Entreprises</th></tr></thead>
+                    <tbody>
+                    @foreach ($countries as $country)
+                        <tr>
+                            <td>
+                                @if ($country['code'])
+                                    <a class="row-link" href="{{ route('admin.utilisateurs.index', ['pays' => $country['code']]) }}">{{ $country['nom'] }}</a>
+                                @else
+                                    <span class="muted">{{ $country['nom'] }}</span>
+                                @endif
+                                <div class="progress" style="margin-top:6px"><span style="width: {{ round($country['utilisateurs'] / $countryMax * 100) }}%"></span></div>
+                            </td>
+                            <td class="num strong">{{ Format::number($country['utilisateurs']) }}</td>
+                            <td class="num">{{ Format::number($country['nouveaux']) }}</td>
+                            <td class="num">{{ Format::number($country['actifs']) }}</td>
+                            <td class="num">{{ Format::number($country['entreprises']) }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+
+    <div class="card">
+        <div class="card-head">
             <div><h2>Dernières entreprises inscrites</h2></div>
             <div class="right"><a class="btn btn-outline btn-sm" href="{{ route('admin.entreprises.index') }}">Toutes les entreprises <x-admin.icon name="arrow-forward" /></a></div>
         </div>

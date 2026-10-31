@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * a Feature never contains logic specific to one BusinessDomain — the
  * mapping lives entirely in DomainFeature. See docs/features.md.
  */
-#[Fillable(['nom', 'slug', 'description', 'actif'])]
+#[Fillable(['nom', 'slug', 'categorie', 'description', 'actif'])]
 #[Table('fonctionnalites')]
 class Feature extends Model
 {

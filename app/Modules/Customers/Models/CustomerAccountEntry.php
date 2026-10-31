@@ -23,6 +23,9 @@ class CustomerAccountEntry extends Model
 
     public const SALE_CANCELLED = 'annulation_vente';
 
+    // Retour d'articles remboursé en avoir (module Returns) : le solde baisse.
+    public const RETURN_CREDIT = 'avoir_retour';
+
     protected function casts(): array
     {
         return [

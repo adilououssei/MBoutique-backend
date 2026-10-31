@@ -3,8 +3,10 @@
 namespace App\Modules\Inventory\Services;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Inventory\Enums\LossOrigin;
 use App\Modules\Inventory\Enums\StockMovementType;
 use App\Modules\Inventory\Events\StockLevelChanged;
+use App\Modules\Inventory\Events\StockMovementRecorded;
 use App\Modules\Inventory\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Exceptions\StockAlreadyInitializedException;
 use App\Modules\Inventory\Exceptions\StockNotInitializedException;
@@ -88,6 +90,8 @@ class InventoryService
     /**
      * @param  StockMovementType  $type  Loss, AdjustmentOut, or Sale (Sales calling
      *                                   this directly with a Sale as $reference — see docs/inventory.md §14)
+     * @param  LossOrigin|null  $lossOrigin  Loss only: why it was lost. A Loss also
+     *                                       freezes the product's purchase price as its unit cost (valued losses).
      */
     public function removeStock(
         Product $product,
@@ -96,19 +100,24 @@ class InventoryService
         ?int $createdByUserId,
         ?string $reason = null,
         ?Model $reference = null,
+        ?LossOrigin $lossOrigin = null,
     ): StockMovement {
         if ($type->isEntry()) {
             throw new InvalidArgumentException("{$type->value} n'est pas un type de mouvement de sortie.");
         }
 
-        return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason, $reference) {
+        $extra = $type === StockMovementType::Loss
+            ? ['origine_perte' => $lossOrigin, 'cout_unitaire' => $product->prix_achat]
+            : [];
+
+        return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason, $reference, $extra) {
             $stock = $this->lockExistingStock($product);
 
             if (bccomp((string) $stock->quantite, $quantity, 3) < 0) {
                 throw InsufficientStockException::forProduct($product, (string) $stock->quantite, $quantity);
             }
 
-            return $this->applyDelta($stock, $product, $type, bcmul($quantity, '-1', 3), $reason, $createdByUserId, $reference);
+            return $this->applyDelta($stock, $product, $type, bcmul($quantity, '-1', 3), $reason, $createdByUserId, $reference, $extra);
         });
     }
 
@@ -119,12 +128,23 @@ class InventoryService
      */
     public function receiveTransfer(Product $product, string $quantity, ?int $createdByUserId, ?string $reason, Model $reference): StockMovement
     {
-        return DB::transaction(function () use ($product, $quantity, $createdByUserId, $reason, $reference) {
-            $stock = Stock::query()->where('produit_id', $product->id)->lockForUpdate()->first()
-                ?? Stock::create(['produit_id' => $product->id, 'quantite' => 0]);
+        return $this->receive($product, StockMovementType::TransferIn, $quantity, $createdByUserId, $reason, $reference);
+    }
 
-            return $this->applyDelta($stock, $product, StockMovementType::TransferIn, $quantity, $reason, $createdByUserId, $reference);
-        });
+    /**
+     * Morceau ou produit obtenu par une transformation (découpe, préparation) :
+     * même règle que l'arrivée d'un transfert — un produit jamais stocké
+     * (nouveau morceau) voit son stock créé à 0, puis l'entrée est tracée.
+     */
+    public function receiveFromTransformation(Product $product, string $quantity, ?int $createdByUserId, ?string $reason, Model $reference): StockMovement
+    {
+        return $this->receive($product, StockMovementType::TransformationIn, $quantity, $createdByUserId, $reason, $reference);
+    }
+
+    /** Quantité en stock actuelle ('0' si jamais stocké). */
+    public function quantityOf(Product $product): string
+    {
+        return (string) (Stock::query()->where('produit_id', $product->id)->value('quantite') ?? '0');
     }
 
     /** Whether the product's stock row exists (i.e. has been initialized). */
@@ -175,6 +195,16 @@ class InventoryService
         });
     }
 
+    private function receive(Product $product, StockMovementType $type, string $quantity, ?int $createdByUserId, ?string $reason, Model $reference): StockMovement
+    {
+        return DB::transaction(function () use ($product, $type, $quantity, $createdByUserId, $reason, $reference) {
+            $stock = Stock::query()->where('produit_id', $product->id)->lockForUpdate()->first()
+                ?? Stock::create(['produit_id' => $product->id, 'quantite' => 0]);
+
+            return $this->applyDelta($stock, $product, $type, $quantity, $reason, $createdByUserId, $reference);
+        });
+    }
+
     private function lockExistingStock(Product $product): Stock
     {
         $stock = Stock::query()->where('produit_id', $product->id)->lockForUpdate()->first();
@@ -194,6 +224,7 @@ class InventoryService
         ?string $reason,
         ?int $createdByUserId,
         ?Model $reference = null,
+        array $extra = [],
     ): StockMovement {
         $before = (string) $stock->quantite;
         $after = bcadd($before, $delta, 3);
@@ -209,9 +240,11 @@ class InventoryService
             'reference_type' => $reference?->getMorphClass(),
             'reference_id' => $reference?->getKey(),
             'cree_par_id' => $createdByUserId,
+            ...$extra,
         ]);
 
         $stock->update(['quantite' => $after]);
+        StockMovementRecorded::dispatch($movement, $product);
 
         StockLevelChanged::dispatch($stock, $product, $before, $after, $createdByUserId);
 

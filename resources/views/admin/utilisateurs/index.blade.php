@@ -20,6 +20,14 @@
                     <a @class(['chip', 'active' => $filter === $value]) href="{{ request()->fullUrlWithQuery([...$query, 'page' => null]) }}">{{ $label }}</a>
                 @endforeach
             </div>
+            @if ($countries->isNotEmpty())
+                <select name="pays" onchange="this.form.submit()" aria-label="Pays">
+                    <option value="">Tous les pays</option>
+                    @foreach ($countries as $code => $name)
+                        <option value="{{ $code }}" @selected(request('pays') === $code)>{{ $name }}</option>
+                    @endforeach
+                </select>
+            @endif
             @foreach (['statut', 'type'] as $keep)
                 @if (request($keep))<input type="hidden" name="{{ $keep }}" value="{{ request($keep) }}">@endif
             @endforeach
@@ -30,7 +38,7 @@
         @else
             <div class="table-wrap">
                 <table class="table">
-                    <thead><tr><th>Utilisateur</th><th>Téléphone</th><th>Entreprises</th><th>Boutiques</th><th>Statut</th><th>Inscrit le</th><th></th></tr></thead>
+                    <thead><tr><th>Utilisateur</th><th>Téléphone</th><th>Pays</th><th>Entreprises</th><th>Boutiques</th><th>Statut</th><th>Inscrit le</th><th></th></tr></thead>
                     <tbody>
                     @foreach ($users as $user)
                         @php [$label, $tone] = Format::userStatus($user->statut); $self = $user->is(auth()->user()); @endphp
@@ -46,6 +54,7 @@
                                 </div>
                             </td>
                             <td>{{ $user->telephone ?: '—' }}</td>
+                            <td>{{ \App\Modules\Auth\Support\Countries::name($user->pays) ?? '—' }}</td>
                             <td>{{ $user->business_memberships_count }}</td>
                             <td>{{ $user->store_memberships_count }}</td>
                             <td><x-admin.badge :tone="$tone">{{ $label }}</x-admin.badge></td>

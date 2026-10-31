@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * store, not one per catalog type, per the Phase 3 brief. See
  * docs/catalog.md.
  */
-#[Fillable(['nom', 'slug', 'description', 'actif'])]
+#[Fillable(['parent_id', 'nom', 'slug', 'description', 'actif'])]
 class Category extends Model
 {
     use BelongsToStore, HasFactory, SoftDeletes;

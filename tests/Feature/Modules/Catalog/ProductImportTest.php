@@ -28,7 +28,7 @@ class ProductImportTest extends TestCase
 
     public function test_owner_can_import_valid_products(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits', 'categories']);
         Category::factory()->for($store)->create(['nom' => 'Boissons']);
         Sanctum::actingAs($owner);
 
@@ -50,7 +50,7 @@ class ProductImportTest extends TestCase
 
     public function test_import_partially_succeeds_and_reports_rejected_lines(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'categories']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits', 'categories']);
         Category::factory()->for($store)->create(['nom' => 'Boissons']);
         Sanctum::actingAs($owner);
 
@@ -84,7 +84,7 @@ class ProductImportTest extends TestCase
 
     public function test_import_rejects_a_duplicate_sku_within_the_same_file(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         Sanctum::actingAs($owner);
 
         $file = $this->xlsx([
@@ -103,8 +103,8 @@ class ProductImportTest extends TestCase
 
     public function test_import_is_scoped_to_the_current_store(): void
     {
-        ['proprietaire' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['produits']);
-        ['store' => $storeB] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $ownerA, 'store' => $storeA] = $this->createStoreWithFeatures(['produits', 'import_produits']);
+        ['store' => $storeB] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         Sanctum::actingAs($ownerA);
 
         $file = $this->xlsx([
@@ -119,7 +119,7 @@ class ProductImportTest extends TestCase
 
     public function test_import_requires_the_products_import_permission(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         $employee = User::factory()->create();
         Sanctum::actingAs($owner);
         $this->postJson("/api/boutiques/{$store->id}/membres", ['email' => $employee->email, 'role' => 'employe'])
@@ -134,7 +134,7 @@ class ProductImportTest extends TestCase
 
     public function test_import_rejects_a_non_excel_file(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         Sanctum::actingAs($owner);
 
         $file = UploadedFile::fake()->create('produits.pdf', 10, 'application/pdf');
@@ -145,7 +145,7 @@ class ProductImportTest extends TestCase
 
     public function test_import_rejects_a_file_that_is_too_large(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         Sanctum::actingAs($owner);
 
         $file = UploadedFile::fake()->create('produits.xlsx', 6000);
@@ -156,7 +156,7 @@ class ProductImportTest extends TestCase
 
     public function test_the_import_template_can_be_downloaded(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         Sanctum::actingAs($owner);
 
         $response = $this->get("/api/boutiques/{$store->id}/produits/importer/modele");
@@ -170,7 +170,7 @@ class ProductImportTest extends TestCase
 
     public function test_optional_stock_columns_initialize_the_stock(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits', 'stock']);
         Sanctum::actingAs($owner);
         $headings = [...self::HEADINGS, 'stock_initial', 'stock_minimum'];
 
@@ -195,7 +195,7 @@ class ProductImportTest extends TestCase
 
     public function test_an_invalid_stock_rejects_the_whole_line(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'stock']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits', 'stock']);
         Sanctum::actingAs($owner);
 
         $file = $this->xlsx([['Huile', '', '', 'H1', '', 'piece', 1000, 'oui', 1800, 'non', '', 'oui', -3, '']], [...self::HEADINGS, 'stock_initial', 'stock_minimum']);
@@ -209,7 +209,7 @@ class ProductImportTest extends TestCase
 
     public function test_stock_columns_are_ignored_when_the_store_does_not_track_stock(): void
     {
-        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits']);
+        ['proprietaire' => $owner, 'store' => $store] = $this->createStoreWithFeatures(['produits', 'import_produits']);
         Sanctum::actingAs($owner);
 
         $file = $this->xlsx([['Shampoing', '', '', 'SH1', '', 'piece', 1500, 'oui', 2500, 'non', '', 'oui', 12, 2]], [...self::HEADINGS, 'stock_initial', 'stock_minimum']);
@@ -241,5 +241,13 @@ class ProductImportTest extends TestCase
         $binary = Excel::raw($export, ExcelFormat::XLSX);
 
         return UploadedFile::fake()->createWithContent('produits.xlsx', $binary);
+    }
+
+    public function test_a_domain_without_excel_import_cannot_use_it(): void
+    {
+        ['store' => $store] = $this->createStoreWithFeatures(['produits']);
+
+        $this->get("/api/boutiques/{$store->id}/produits/importer/modele")->assertStatus(403);
+        $this->postJson("/api/boutiques/{$store->id}/produits/importer", [])->assertStatus(403)->assertJsonPath('code', 'FONCTIONNALITE_DESACTIVEE');
     }
 }
